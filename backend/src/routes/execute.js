@@ -83,8 +83,8 @@ function executePython(code) {
     // Check if on windows or linux
     const pyCommand = process.platform === 'win32' ? 'python' : 'python3';
     
-    // Spawn python with -c to pass code string
-    const processInstance = spawn(pyCommand, ['-c', code]);
+    // Spawn python in interactive/stdin mode
+    const processInstance = spawn(pyCommand, ['-c', 'import sys; exec(sys.stdin.read())']);
     
     let output = '';
     let errorOutput = '';
@@ -116,5 +116,9 @@ function executePython(code) {
       clearTimeout(timeoutHandle);
       reject(`Failed to spawn Python process. Is Python installed?\n${err.message}`);
     });
+
+    // Write code to stdin
+    processInstance.stdin.write(code);
+    processInstance.stdin.end();
   });
 }
