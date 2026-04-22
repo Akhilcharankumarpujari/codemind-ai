@@ -1,0 +1,106 @@
+System Design Patterns and Architecture
+
+MICROSERVICES ARCHITECTURE
+Break large monoliths into small, independently deployable services. Each microservice:
+- Owns its own database (database-per-service pattern)
+- Communicates via REST, gRPC, or message queues
+- Can be deployed and scaled independently
+- Has a single, well-defined responsibility
+
+Tradeoffs: microservices add operational complexity (service discovery, distributed tracing, network latency). Only migrate when the monolith becomes a bottleneck.
+
+API GATEWAY PATTERN
+A single entry point for all client requests. The gateway handles:
+- Authentication and authorization
+- Rate limiting
+- Request routing to downstream services
+- Response aggregation
+- SSL termination
+- Logging and monitoring
+
+Popular choices: Kong, AWS API Gateway, Nginx, Traefik.
+
+DATABASE DESIGN PATTERNS
+
+Normalization vs Denormalization:
+- Normalize (3NF) for write-heavy workloads — avoids update anomalies
+- Denormalize for read-heavy workloads — avoids expensive JOINs
+
+Read replicas: route SELECT queries to read replicas, writes to the primary. Provides horizontal read scaling.
+
+Sharding: partition data across multiple databases by a shard key (e.g., user_id % N). Enables horizontal write scaling. Choose shard keys carefully to avoid hotspots.
+
+CQRS (Command Query Responsibility Segregation)
+Separate the write model (Commands) from the read model (Queries). Commands mutate state; Queries are read-only and can use a different, optimized data store.
+
+Benefits: read and write sides can be scaled and optimized independently.
+Drawback: eventual consistency between write and read stores.
+
+EVENT SOURCING
+Instead of storing current state, store the full sequence of events that led to it. The current state is derived by replaying events.
+
+Benefits: complete audit trail, ability to replay history, time-travel debugging.
+Drawback: complexity, event schema evolution.
+
+CACHING STRATEGIES
+Cache-aside (Lazy loading): application checks cache first; on miss, loads from DB and populates cache.
+Write-through: write to cache and DB simultaneously — cache never stale but write latency increases.
+Write-behind (Write-back): write to cache immediately, asynchronously flush to DB — low write latency but risk of data loss.
+Cache eviction: LRU (Least Recently Used) is the most common policy.
+
+Redis use cases: session storage, rate limiting counters, pub/sub, leaderboards, distributed locks.
+
+LOAD BALANCING
+Algorithms:
+- Round Robin: distribute requests equally (stateless services)
+- Least Connections: route to server with fewest active connections
+- IP Hash: same client always goes to same server (useful for sticky sessions)
+- Weighted Round Robin: assign more traffic to more powerful servers
+
+CIRCUIT BREAKER PATTERN
+Prevent cascading failures when a downstream service is down.
+States: Closed (normal) → Open (failing, reject fast) → Half-Open (test recovery)
+
+Libraries: Resilience4j (Java), Polly (.NET), opossum (Node.js).
+
+MESSAGE QUEUES AND EVENT-DRIVEN ARCHITECTURE
+Decouple producers from consumers. Useful for:
+- Async processing (email sending, report generation)
+- Load levelling (absorb traffic spikes)
+- Fan-out (one event → multiple consumers)
+
+Kafka: high-throughput, durable, log-based. Good for event streaming and event sourcing.
+RabbitMQ: flexible routing, AMQP protocol. Good for task queues.
+SQS (AWS): managed, at-least-once delivery.
+
+CAP THEOREM
+A distributed system can only guarantee two of three:
+- Consistency: every read sees the latest write
+- Availability: every request gets a response
+- Partition Tolerance: system works despite network partitions
+
+In practice, network partitions happen, so you choose CP (e.g., HBase, Zookeeper) or AP (e.g., Cassandra, CouchDB, DynamoDB in some modes).
+
+RATE LIMITING
+Algorithms:
+- Token Bucket: tokens refill at a fixed rate; burst allowed up to bucket size
+- Sliding Window Counter: more accurate, no burst spikes at window boundaries
+- Fixed Window: simplest, but allows double the rate at window boundaries
+
+Implement at the API Gateway or using Redis for distributed counters.
+
+REST API BEST PRACTICES
+- Use nouns for resources: /users, /orders — not /getUser, /createOrder
+- Use HTTP verbs correctly: GET (read), POST (create), PUT/PATCH (update), DELETE
+- Return proper status codes: 200, 201, 400, 401, 403, 404, 409, 422, 429, 500
+- Version your API: /api/v1/users
+- Use pagination for list endpoints: ?page=2&limit=20 or cursor-based
+- Return consistent error objects: { "error": "...", "code": "...", "details": [...] }
+
+OBSERVABILITY (LOGS, METRICS, TRACES)
+The three pillars:
+- Logs: structured JSON logs with correlation IDs (use ELK Stack or Loki)
+- Metrics: counters, gauges, histograms (Prometheus + Grafana)
+- Traces: distributed tracing across services (Jaeger, Zipkin, OpenTelemetry)
+
+Add a unique request/correlation ID to every request header and propagate it through all service calls.

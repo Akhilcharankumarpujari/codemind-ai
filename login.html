@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeMind AI — Sign In</title>
+<meta name="description" content="Sign in to CodeMind AI — Your intelligent coding assistant with RAG, multi-agent system, and code execution.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: rgba(255,255,255,0.07);
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --text: #f0f0f5;
+    --muted: #6b7280;
+    --font: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── Background ── */
+  .bg-glow {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  }
+  .bg-glow::before {
+    content: '';
+    position: absolute;
+    top: -30%; left: -20%;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 65%);
+    animation: drift 12s ease-in-out infinite alternate;
+  }
+  .bg-glow::after {
+    content: '';
+    position: absolute;
+    bottom: -30%; right: -10%;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 65%);
+    animation: drift 10s ease-in-out infinite alternate-reverse;
+  }
+  @keyframes drift { from { transform: translate(0,0); } to { transform: translate(40px, 30px); } }
+
+  /* ── Card ── */
+  .card {
+    position: relative; z-index: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 44px 40px;
+    width: 420px;
+    max-width: 95vw;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+    animation: fadeUp 0.4s ease;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ── Logo ── */
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 8px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #00e5ff, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+  .logo-text span { color: var(--accent); }
+  .tagline { font-size: 13px; color: var(--muted); margin-bottom: 32px; font-family: var(--mono); }
+
+  /* ── Tabs ── */
+  .tabs {
+    display: flex; background: rgba(255,255,255,0.04);
+    border-radius: 10px; padding: 4px; margin-bottom: 28px;
+    border: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1; padding: 9px; text-align: center;
+    border-radius: 7px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; color: var(--muted);
+    border: none; background: none;
+  }
+  .tab.active { background: rgba(0,229,255,0.1); color: var(--accent); }
+
+  /* ── Form ── */
+  .form { display: flex; flex-direction: column; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  label { font-size: 12px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; }
+  input {
+    background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; font-family: var(--font);
+    font-size: 14px; color: var(--text); outline: none; transition: border 0.2s;
+  }
+  input:focus { border-color: var(--accent); }
+  input::placeholder { color: var(--muted); }
+
+  .submit-btn {
+    margin-top: 6px; padding: 13px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 10px; color: #000;
+    font-family: var(--font); font-size: 14px; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+    letter-spacing: 0.3px;
+  }
+  .submit-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .submit-btn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+  .error-msg {
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #f87171;
+    display: none;
+  }
+  .error-msg.visible { display: block; }
+
+  .success-msg {
+    background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3);
+    border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #34d399;
+    display: none;
+  }
+  .success-msg.visible { display: block; }
+
+  .divider { text-align: center; font-size: 12px; color: var(--muted); margin: 8px 0; }
+
+  /* ── Guest button ── */
+  .guest-btn {
+    padding: 12px; background: transparent;
+    border: 1px solid var(--border); border-radius: 10px;
+    color: var(--muted); font-family: var(--font); font-size: 13px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .guest-btn:hover { border-color: var(--text); color: var(--text); }
+
+  /* ── Features ── */
+  .features {
+    margin-top: 28px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .feature {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--muted); font-family: var(--mono);
+  }
+  .feature-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-text">Code<span>Mind</span> AI</div>
+  </div>
+  <div class="tagline">Multi-Agent · RAG · Code Execution · Streaming</div>
+
+  <div class="tabs">
+    <button class="tab active" id="loginTab" onclick="switchTab('login')">Sign In</button>
+    <button class="tab" id="registerTab" onclick="switchTab('register')">Create Account</button>
+  </div>
+
+  <form class="form" id="authForm" onsubmit="handleSubmit(event)">
+    <div class="form-group" id="nameGroup" style="display:none">
+      <label for="nameInput">Your Name</label>
+      <input type="text" id="nameInput" placeholder="Jane Doe" autocomplete="name">
+    </div>
+    <div class="form-group">
+      <label for="emailInput">Email Address</label>
+      <input type="email" id="emailInput" placeholder="you@example.com" required autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label for="passwordInput">Password</label>
+      <input type="password" id="passwordInput" placeholder="••••••••" required autocomplete="current-password">
+    </div>
+
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg"></div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">Sign In</button>
+  </form>
+
+  <div class="divider">or</div>
+  <button class="guest-btn" onclick="continueAsGuest()">Continue as Guest</button>
+
+  <div class="features">
+    <div class="feature"><div class="feature-dot"></div>Debug Agent</div>
+    <div class="feature"><div class="feature-dot" style="background:#818cf8"></div>Arch Agent</div>
+    <div class="feature"><div class="feature-dot" style="background:#34d399"></div>Security Agent</div>
+    <div class="feature"><div class="feature-dot" style="background:#f59e0b"></div>RAG Search</div>
+    <div class="feature"><div class="feature-dot"></div>Code Execution</div>
+    <div class="feature"><div class="feature-dot" style="background:#818cf8"></div>Streaming</div>
+  </div>
+</div>
+
+<script>
+  const BACKEND_URL = 'http://localhost:3001';
+  let currentTab = 'login';
+
+  // Redirect to chat if already logged in
+  const existing = localStorage.getItem('cm_token');
+  if (existing) {
+    // Verify token is still valid
+    fetch(`${BACKEND_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${existing}` }
+    }).then(r => {
+      if (r.ok) window.location.href = '/';
+    }).catch(() => {});
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    document.getElementById('loginTab').className = tab === 'login' ? 'tab active' : 'tab';
+    document.getElementById('registerTab').className = tab === 'register' ? 'tab active' : 'tab';
+    document.getElementById('nameGroup').style.display = tab === 'register' ? 'flex' : 'none';
+    document.getElementById('submitBtn').textContent = tab === 'login' ? 'Sign In' : 'Create Account';
+    document.getElementById('passwordInput').autocomplete = tab === 'login' ? 'current-password' : 'new-password';
+    clearMessages();
+  }
+
+  function clearMessages() {
+    document.getElementById('errorMsg').className = 'error-msg';
+    document.getElementById('successMsg').className = 'success-msg';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg; el.className = 'error-msg visible';
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById('successMsg');
+    el.textContent = msg; el.className = 'success-msg visible';
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    clearMessages();
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = currentTab === 'login' ? 'Signing in...' : 'Creating account...';
+
+    const email = document.getElementById('emailInput').value.trim();
+    const password = document.getElementById('passwordInput').value;
+    const name = document.getElementById('nameInput').value.trim();
+
+    const endpoint = currentTab === 'login' ? '/api/auth/login' : '/api/auth/register';
+
+    try {
+      const resp = await fetch(`${BACKEND_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        showError(data.error || 'Something went wrong.');
+        btn.disabled = false;
+        btn.textContent = currentTab === 'login' ? 'Sign In' : 'Create Account';
+        return;
+      }
+
+      // Save auth data
+      localStorage.setItem('cm_token', data.token);
+      localStorage.setItem('cm_user', JSON.stringify(data.user));
+
+      showSuccess(currentTab === 'login' ? 'Welcome back! Redirecting...' : 'Account created! Redirecting...');
+      setTimeout(() => { window.location.href = '/'; }, 800);
+
+    } catch (err) {
+      showError('Cannot reach server. Make sure the backend is running on port 3001.');
+      btn.disabled = false;
+      btn.textContent = currentTab === 'login' ? 'Sign In' : 'Create Account';
+    }
+  }
+
+  function continueAsGuest() {
+    localStorage.removeItem('cm_token');
+    localStorage.setItem('cm_user', JSON.stringify({ id: 'guest', email: '', name: 'Guest' }));
+    window.location.href = '/';
+  }
+</script>
+</body>
+</html>

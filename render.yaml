@@ -1,0 +1,30 @@
+services:
+  # ── Express Backend ──────────────────────────────────────────────────────────
+  - type: web
+    name: codemind-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GROQ_API_KEY
+        sync: false          # Set manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false          # Set manually in Render dashboard
+      - key: RAG_SERVICE_URL
+        fromService:
+          name: codemind-rag
+          type: web
+          property: host
+      - key: FRONTEND_URL
+        sync: false          # Set to your Netlify/Vercel URL
+
+  # ── RAG Microservice ─────────────────────────────────────────────────────────
+  - type: web
+    name: codemind-rag
+    runtime: python
+    rootDir: rag_service
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT

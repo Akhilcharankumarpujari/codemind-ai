@@ -1,0 +1,35 @@
+# ── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+.npm
+
+# ── Environment ────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Python ─────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+build/
+
+# ── RAG persistent data (too large for git) ────────────────────────────────────
+rag_service/faiss_store/
+rag_service/docs/*.pdf
+
+# ── OS ─────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── IDE ────────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user

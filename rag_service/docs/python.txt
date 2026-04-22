@@ -1,0 +1,147 @@
+Python Best Practices and Modern Patterns
+
+PEP 8 STYLE GUIDE
+Follow PEP 8 for consistent code style:
+- Use 4 spaces for indentation (never tabs)
+- Max line length: 88 chars (Black formatter default) or 79 (PEP 8 strict)
+- Two blank lines between top-level definitions
+- One blank line between methods inside a class
+- Imports: stdlib → third-party → local, alphabetically within each group
+
+TYPE HINTS
+Always add type hints in Python 3.10+. They serve as documentation and enable static analysis with mypy.
+
+def process_user(user_id: int, name: str, tags: list[str] | None = None) -> dict:
+    return {"id": user_id, "name": name, "tags": tags or []}
+
+Use from __future__ import annotations in Python 3.9 for modern type syntax.
+
+DATACLASSES AND PYDANTIC
+Use dataclasses for simple data containers:
+from dataclasses import dataclass, field
+
+@dataclass
+class Config:
+    host: str = "localhost"
+    port: int = 8080
+    tags: list[str] = field(default_factory=list)
+
+Use Pydantic for validation and serialization (ideal for APIs):
+from pydantic import BaseModel, Field
+
+class UserCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    email: str
+    age: int = Field(ge=0, le=150)
+
+LIST COMPREHENSIONS AND GENERATORS
+Prefer comprehensions over map/filter for readability:
+squares   = [x**2 for x in range(10)]
+evens     = [x for x in data if x % 2 == 0]
+sq_evens  = [x**2 for x in data if x % 2 == 0]
+
+Use generators for memory efficiency with large datasets:
+def read_chunks(file_path, size=1024):
+    with open(file_path) as f:
+        while chunk := f.read(size):
+            yield chunk
+
+CONTEXT MANAGERS
+Always use with for resources that need cleanup:
+with open("data.txt", encoding="utf-8") as f:
+    content = f.read()
+
+Create custom context managers with contextlib:
+from contextlib import contextmanager
+
+@contextmanager
+def timer(label: str):
+    import time
+    start = time.perf_counter()
+    yield
+    elapsed = time.perf_counter() - start
+    print(f"{label}: {elapsed:.3f}s")
+
+VIRTUAL ENVIRONMENTS
+Always use a virtual environment per project:
+python -m venv .venv
+source .venv/bin/activate      # Linux/Mac
+.venv\Scripts\activate         # Windows
+pip install -r requirements.txt
+
+Use pyproject.toml for modern project configuration instead of setup.py.
+
+ERROR HANDLING
+Be specific with exception types. Never catch bare Exception unless re-raising:
+try:
+    result = int(user_input)
+except ValueError as e:
+    print(f"Invalid number: {e}")
+except (TypeError, OverflowError):
+    print("Out of range")
+
+PATHLIB
+Use pathlib.Path instead of os.path for file operations:
+from pathlib import Path
+
+data_dir = Path("data")
+data_dir.mkdir(parents=True, exist_ok=True)
+output   = data_dir / "results.json"
+content  = output.read_text(encoding="utf-8")
+
+DECORATORS
+Decorators add behaviour without modifying a function:
+import functools
+
+def retry(times=3):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for attempt in range(times):
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == times - 1:
+                        raise
+        return wrapper
+    return decorator
+
+@retry(times=3)
+def fetch_data(url: str) -> dict:
+    ...
+
+ASYNC PYTHON (asyncio)
+Use async/await for I/O-bound concurrency:
+import asyncio
+import aiohttp
+
+async def fetch(session: aiohttp.ClientSession, url: str) -> dict:
+    async with session.get(url) as resp:
+        return await resp.json()
+
+async def fetch_all(urls: list[str]) -> list[dict]:
+    async with aiohttp.ClientSession() as session:
+        tasks = [fetch(session, url) for url in urls]
+        return await asyncio.gather(*tasks)
+
+TESTING WITH PYTEST
+Write tests with pytest. Use fixtures for setup/teardown:
+import pytest
+
+@pytest.fixture
+def sample_user():
+    return {"name": "Alice", "age": 30}
+
+def test_user_name(sample_user):
+    assert sample_user["name"] == "Alice"
+
+def test_raises():
+    with pytest.raises(ValueError):
+        int("not-a-number")
+
+LOGGING
+Use the logging module, never print() in production code:
+import logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+logger = logging.getLogger(__name__)
+logger.info("Server started on port %d", port)

@@ -1,0 +1,113 @@
+JavaScript Modern Reference Guide
+
+VARIABLES AND SCOPE
+Always use const for values that don't change, let for values that do, and never use var. var has function scope and hoisting which leads to confusing bugs. const and let are block-scoped.
+
+Example:
+const MAX_RETRIES = 3;
+let attempts = 0;
+
+ASYNC/AWAIT AND PROMISES
+Async/await is syntactic sugar over Promises. It makes asynchronous code look synchronous and is easier to read than .then() chains.
+
+async function fetchUser(id) {
+  try {
+    const response = await fetch(`/api/users/${id}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return await response.json();
+  } catch (err) {
+    console.error('Failed to fetch user:', err);
+    throw err;
+  }
+}
+
+Always wrap await calls in try/catch. Unhandled promise rejections crash Node.js processes.
+
+OPTIONAL CHAINING AND NULLISH COALESCING
+Use optional chaining (?.) to safely access deeply nested properties without throwing:
+const city = user?.address?.city ?? 'Unknown';
+
+The nullish coalescing operator (??) returns the right side only when the left side is null or undefined (unlike || which also triggers on 0 and '').
+
+ARRAY METHODS
+Prefer functional array methods over for loops:
+- map(): transform each element, returns new array
+- filter(): keep elements that pass a test
+- reduce(): accumulate a value
+- find(): return first matching element
+- some() / every(): boolean checks
+
+const doubled = [1, 2, 3].map(n => n * 2);          // [2, 4, 6]
+const evens   = [1, 2, 3, 4].filter(n => n % 2 === 0); // [2, 4]
+const sum     = [1, 2, 3].reduce((acc, n) => acc + n, 0); // 6
+
+DESTRUCTURING
+Object destructuring extracts named properties:
+const { name, age, address: { city } = {} } = user;
+
+Array destructuring extracts by position:
+const [first, second, ...rest] = items;
+
+SPREAD AND REST
+Spread (...) expands an iterable, rest collects remaining args:
+const merged = { ...defaults, ...overrides };
+const clone  = [...originalArray];
+
+function sum(...numbers) {
+  return numbers.reduce((a, b) => a + b, 0);
+}
+
+MODULES (ES Modules)
+Use import/export syntax. Named exports:
+export function add(a, b) { return a + b; }
+import { add } from './math.js';
+
+Default exports:
+export default class Calculator { ... }
+import Calculator from './calculator.js';
+
+ERROR HANDLING PATTERNS
+Always handle errors explicitly. Never silently swallow them:
+try {
+  const data = JSON.parse(rawJson);
+} catch (e) {
+  if (e instanceof SyntaxError) {
+    console.error('Invalid JSON:', e.message);
+  } else {
+    throw e; // re-throw unexpected errors
+  }
+}
+
+CLOSURES
+A closure is a function that remembers variables from its outer scope:
+function makeCounter() {
+  let count = 0;
+  return {
+    increment: () => ++count,
+    decrement: () => --count,
+    value:     () => count,
+  };
+}
+
+PROTOTYPE AND CLASSES
+ES6 classes are syntactic sugar over prototype-based inheritance:
+class Animal {
+  constructor(name) { this.name = name; }
+  speak() { return `${this.name} makes a sound.`; }
+}
+class Dog extends Animal {
+  speak() { return `${this.name} barks.`; }
+}
+
+EVENT LOOP
+JavaScript is single-threaded with an event loop. The call stack runs synchronous code, then processes the microtask queue (Promises), then the macrotask queue (setTimeout, setInterval, I/O).
+
+setTimeout callbacks always run after all microtasks are drained, even setTimeout(fn, 0).
+
+PERFORMANCE TIPS
+- Avoid layout thrashing: batch DOM reads before writes
+- Use DocumentFragment for bulk DOM inserts
+- Debounce resize/scroll event handlers
+- Use Web Workers for CPU-heavy tasks off the main thread
+- Prefer fetch over XMLHttpRequest
+- Use Map/Set over plain objects for frequent add/delete operations

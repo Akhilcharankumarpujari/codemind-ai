@@ -1,0 +1,111 @@
+Security Best Practices — OWASP and Beyond
+
+AUTHENTICATION AND PASSWORDS
+Never store plain-text passwords. Always hash with bcrypt, scrypt, or Argon2 (never MD5 or SHA-1 alone — they are too fast):
+
+// Node.js example
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 12;
+const hash = await bcrypt.hash(plainPassword, SALT_ROUNDS);
+const match = await bcrypt.compare(input, hash);
+
+Use multi-factor authentication (MFA/TOTP) for sensitive accounts.
+Implement account lockout after N failed login attempts (e.g., 5 attempts → 15-minute lockout).
+Require strong passwords: minimum 12 characters, mixed case, numbers.
+
+JSON WEB TOKENS (JWT)
+JWTs are self-contained tokens signed with a secret (HS256) or private key (RS256).
+- Access tokens: short-lived (15 minutes)
+- Refresh tokens: longer-lived (7 days), stored in HttpOnly cookies
+- Never store JWTs in localStorage (XSS can steal them)
+- Always verify signature AND expiry on every request
+- Use RS256 (asymmetric) in distributed systems so only the auth server can issue tokens
+
+const token = jwt.sign({ userId, role }, process.env.JWT_SECRET, { expiresIn: '15m' });
+
+OWASP TOP 10 — CRITICAL VULNERABILITIES
+
+1. Broken Access Control
+Always enforce authorization server-side. Never trust client-side role checks.
+Use the principle of least privilege: give only the permissions required.
+
+2. Cryptographic Failures
+Use TLS 1.2+ for all data in transit.
+Encrypt sensitive data at rest (AES-256-GCM).
+Never hardcode secrets — use environment variables or a secrets manager (AWS Secrets Manager, HashiCorp Vault).
+
+3. Injection (SQL, NoSQL, Command)
+Use parameterized queries / prepared statements — never string-concatenate user input into queries:
+
+// UNSAFE — never do this
+db.query(`SELECT * FROM users WHERE id = ${userId}`);
+
+// SAFE — parameterized
+db.query('SELECT * FROM users WHERE id = ?', [userId]);
+
+Use an ORM (Sequelize, Prisma, SQLAlchemy) which handles parameterization automatically.
+
+4. Insecure Design
+Threat model during design. Apply defense-in-depth: multiple security layers so no single failure is catastrophic.
+
+5. Security Misconfiguration
+Disable default credentials immediately.
+Remove unused features and endpoints.
+Set security headers (use helmet.js in Node.js):
+  - Content-Security-Policy
+  - X-Frame-Options: DENY
+  - X-Content-Type-Options: nosniff
+  - Strict-Transport-Security
+
+6. Vulnerable Components
+Regularly audit dependencies: npm audit, pip-audit, Dependabot.
+Pin dependency versions in production.
+
+7. Identification and Authentication Failures
+Use secure session management. Regenerate session ID on login (prevent session fixation).
+Invalidate sessions on logout. Store session server-side or use signed cookies.
+
+8. Software and Data Integrity Failures
+Verify checksums of downloaded artifacts.
+Use signed commits and tags in CI/CD.
+Implement a software bill of materials (SBOM).
+
+9. Security Logging and Monitoring Failures
+Log authentication events, access control failures, and input validation failures.
+Include: timestamp, user ID, IP address, action, outcome.
+Alert on: multiple failed logins, privilege escalation, unusual access patterns.
+Never log passwords, tokens, or PII.
+
+10. Server-Side Request Forgery (SSRF)
+Validate and whitelist URLs before making server-side HTTP requests.
+Never let users supply arbitrary URLs for the server to fetch.
+
+INPUT VALIDATION AND SANITIZATION
+Validate all inputs server-side (never trust client-side validation alone):
+- Whitelist expected characters/format
+- Reject or encode unexpected characters
+- Use a schema validation library (Joi, Zod, Pydantic, Yup)
+
+For HTML output: always escape user-generated content to prevent XSS:
+const safe = DOMPurify.sanitize(userHtml);
+
+CROSS-ORIGIN RESOURCE SHARING (CORS)
+Configure CORS precisely. Never use wildcard (*) in production:
+app.use(cors({ origin: ['https://myapp.com'], methods: ['GET', 'POST'] }));
+
+RATE LIMITING
+Implement rate limiting on all public endpoints — especially auth endpoints:
+- Login: max 5 attempts per minute per IP
+- API: max 60 requests per minute per user
+
+HTTPS AND TLS
+Redirect all HTTP to HTTPS.
+Use HSTS (Strict-Transport-Security) with a long max-age.
+Use Let's Encrypt for free, auto-renewing certificates.
+Disable TLS 1.0 and 1.1. Use TLS 1.2+ only.
+
+SECRET MANAGEMENT
+Load secrets from environment variables or a secrets manager at runtime.
+Rotate secrets regularly.
+Use different secrets per environment (dev, staging, prod).
+Audit who has access to production secrets.
