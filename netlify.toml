@@ -1,0 +1,13 @@
+[build]
+  # No build command needed for plain HTML
+  publish = "."
+
+[[redirects]]
+  from = "/"
+  to = "/Aicodingchatbot .HTML"
+  status = 200
+
+[[redirects]]
+  from = "/login"
+  to = "/login.html"
+  status = 200
