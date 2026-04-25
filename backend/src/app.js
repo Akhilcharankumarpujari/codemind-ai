@@ -11,6 +11,7 @@ import { chatRouter } from './routes/chat.js';
 import { uploadRouter } from './routes/upload.js';
 import { executeRouter } from './routes/execute.js';
 import { authRouter } from './routes/auth.js';
+import { flowRouter } from './routes/flow.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -82,6 +83,7 @@ app.use('/api', authRouter);
 app.use('/api', chatRouter);
 app.use('/api', uploadRouter);
 app.use('/api', executeRouter);
+app.use('/api', flowRouter);
 
 // Health check (Render / Railway keep-alive)
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: Date.now() }));

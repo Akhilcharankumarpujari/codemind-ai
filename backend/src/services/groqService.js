@@ -149,3 +149,58 @@ ${ragContext}
   return { stream, model: safeModel, ragUsed: ragContext.length > 0 };
 }
 
+/**
+ * Send a request to Groq to generate a Mermaid flow chart and execution steps.
+ *
+ * @param {string} code - The user provided code
+ * @param {boolean} isRetry - Whether this is a retry attempt
+ * @returns {Promise<{mermaid: string, steps: string[]}>}
+ */
+export async function generateFlow(code, isRetry = false) {
+  let systemPrompt = `Return ONLY a valid Mermaid flowchart.
+Your task is to analyze the following code snippet and return a JSON object with a Mermaid flowchart and an execution path array.
+
+Rules for "mermaid" string:
+1. Start EXACTLY with: graph TD
+2. Each statement must be on a NEW LINE
+3. Use ONLY: A[Start], B{Condition}, C[Process], -->
+4. Do NOT include: explanations, markdown, \`\`\` blocks, or special characters.
+
+Requirements for "steps" array:
+An array of strings representing the exact order of node IDs executed.
+
+Format:
+{
+  "mermaid": "graph TD\\nA[Start] --> B{Condition}\\n...",
+  "steps": ["A", "B", "..."]
+}
+
+Return strictly JSON and nothing else.`;
+
+  if (isRetry) {
+    systemPrompt = `ONLY return valid Mermaid. No text. No markdown. No explanations.
+Output must start with 'graph TD'.
+Format: {"mermaid": "graph TD\\nA[Start] --> B[Processing]", "steps": ["A", "B"]}`;
+  }
+
+  const completion = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: `Code:\n\n${code}` }
+    ],
+    temperature: 0.1,
+    max_tokens: 1500,
+    response_format: { type: 'json_object' }
+  });
+
+  const reply = completion.choices?.[0]?.message?.content;
+  if (!reply) throw new Error('Groq returned an empty response.');
+
+  try {
+    const data = JSON.parse(reply);
+    return data;
+  } catch (err) {
+    throw new Error('Failed to parse Groq response as JSON.');
+  }
+}

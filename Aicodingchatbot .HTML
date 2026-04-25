@@ -492,7 +492,86 @@
   .light-mode .msg-bubble { border-color: var(--border); }
   .light-mode .code-block-wrap pre { background: var(--code-bg); }
   .light-mode .code-header { background: #2d3748; }
+  /* ─── FLOW VISUALIZER ─── */
+  .flow-area {
+    display: flex; height: 100vh; background: var(--bg); overflow: hidden;
+  }
+  .flow-left {
+    width: 40%; display: flex; flex-direction: column; border-right: 1px solid var(--border);
+    background: var(--surface); padding: 20px;
+  }
+  .flow-right {
+    width: 60%; display: flex; flex-direction: column; background: var(--bg); position: relative;
+  }
+  .flow-header { font-size: 16px; font-weight: 800; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .flow-header span { color: var(--accent); }
+  .flow-code-input {
+    flex: 1; width: 100%; background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; color: var(--text); font-family: var(--font-mono);
+    font-size: 13px; resize: none; outline: none; margin-bottom: 16px; line-height: 1.5;
+  }
+  .flow-code-input:focus { border-color: var(--accent); }
+  .flow-btn {
+    width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none; border-radius: 8px; color: white; font-family: var(--font-ui);
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.2s;
+  }
+  .flow-btn:hover { opacity: 0.85; }
+  .flow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  .mermaid-container {
+    flex: 1; padding: 20px; overflow: auto; display: flex; align-items: center; justify-content: center;
+  }
+  
+  /* Mermaid Custom Styles */
+  .node rect, .node circle, .node polygon, .node path, .node .label-container {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+  .node .nodeLabel {
+    transition: color 0.4s ease !important;
+  }
+  .active-node rect, .active-node circle, .active-node polygon, .active-node path, .active-node .label-container {
+    stroke: var(--accent) !important;
+    stroke-width: 5px !important;
+    filter: drop-shadow(0 0 16px rgba(0, 229, 255, 0.6)) !important;
+  }
+  .active-node .nodeLabel {
+    color: #fff !important;
+    font-weight: bold !important;
+  }
+  
+  .flow-controls {
+    padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .controls-group { display: flex; gap: 10px; align-items: center; }
+  .control-btn {
+    padding: 8px 16px; border-radius: 8px; background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--font-ui); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .control-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); background: rgba(0,229,255,0.06); }
+  .control-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .control-btn.play-btn { background: rgba(52,211,153,0.1); color: #34d399; border-color: rgba(52,211,153,0.3); }
+  .control-btn.play-btn:hover:not(:disabled) { background: rgba(52,211,153,0.2); }
+  .step-counter { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+  .speed-select {
+    background: var(--surface2); border: 1px solid var(--border); color: var(--text);
+    padding: 6px 10px; border-radius: 6px; font-size: 12px; font-family: var(--font-ui);
+    outline: none;
+  }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      securityLevel: 'loose',
+      fontFamily: 'JetBrains Mono, monospace'
+    });
+  });
+</script>
 </head>
 <body>
 <div class="app">
@@ -507,18 +586,15 @@
       <button class="new-chat-btn" onclick="newChat()">
         <span>✦</span> New conversation
       </button>
-      <button class="upload-btn" onclick="openUploadModal()" id="uploadBtn">
-        📂 Upload Document
+      <button class="upload-btn" onclick="toggleFlowMode()" id="flowVisBtn" style="border-color:var(--accent2); color:var(--accent2); background:rgba(124,58,237,0.06); margin-top:8px">
+        📊 Flow Visualizer
       </button>
     </div>
     <div class="sidebar-section">History</div>
     <div class="history-list" id="historyList">
       <div class="history-item active"><span class="dot"></span>New conversation</div>
     </div>
-    <div class="sidebar-section" style="margin-top:4px">Docs <span id="docCount" style="color:var(--accent);font-size:10px"></span></div>
-    <div class="doc-list" id="docList">
-      <div class="no-docs-hint" id="noDocsHint">No documents uploaded yet</div>
-    </div>
+
     <div class="sidebar-footer">
       <div class="model-badge" style="flex-direction:column;gap:6px;align-items:flex-start">
         <div style="display:flex;align-items:center;gap:8px;width:100%">
@@ -537,7 +613,7 @@
   </aside>
 
   <!-- MAIN CHAT -->
-  <main class="chat-area">
+  <main class="chat-area" id="chatArea">
     <div class="chat-topbar">
       <div class="chat-title">Tech &amp; Coding <span>Assistant</span></div>
       <div class="topbar-pills">
@@ -592,32 +668,52 @@
     </div>
   </main>
 
+  <!-- FLOW VISUALIZER -->
+  <main class="flow-area" id="flowArea" style="display:none">
+    <div class="flow-left">
+      <div class="flow-header"><span>⚡</span> Flow Visualizer</div>
+      <div style="font-size:12px; color:var(--muted); margin-bottom:12px">Paste your code below to generate an animated execution flowchart.</div>
+      <textarea class="flow-code-input" id="flowCodeInput" placeholder="function example() {
+  let x = 10;
+  if (x > 5) {
+    return true;
+  }
+  return false;
+}"></textarea>
+      <button class="flow-btn" id="generateFlowBtn" onclick="generateFlow()">Generate Flow</button>
+    </div>
+    <div class="flow-right">
+      <div class="chat-topbar" style="border-bottom: 1px solid var(--border); background: var(--surface);">
+        <div class="chat-title">Execution <span>Graph</span></div>
+        <button class="pill" onclick="toggleFlowMode()">✕ Close</button>
+      </div>
+      <div class="mermaid-container" id="mermaidContainer">
+        <div style="color:var(--muted); font-size:13px; text-align:center;">
+          <div style="font-size:24px; margin-bottom:10px">📊</div>
+          Graph will appear here
+        </div>
+      </div>
+      <div class="flow-controls">
+        <div class="controls-group">
+          <button class="control-btn play-btn" id="playBtn" onclick="togglePlay()" disabled>▶ Play</button>
+          <button class="control-btn" id="nextBtn" onclick="nextStep()" disabled>⏭ Next</button>
+          <button class="control-btn" id="resetBtn" onclick="resetAnimation()" disabled>🔄 Reset</button>
+        </div>
+        <div class="controls-group">
+          <span class="step-counter" id="stepCounter">Step: 0 / 0</span>
+          <select class="speed-select" id="speedSelect" onchange="handleSpeedChange()">
+            <option value="1500">Slow</option>
+            <option value="800" selected>Normal</option>
+            <option value="400">Fast</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </main>
+
 </div>
 
-<!-- UPLOAD MODAL -->
-<div class="modal-overlay hidden" id="uploadOverlay" onclick="handleOverlayClick(event)">
-  <div class="upload-modal">
-    <div class="modal-title">📂 Upload <span>Document</span></div>
-    <div class="modal-sub">PDF or TXT · max 20 MB · text is chunked &amp; indexed into RAG</div>
 
-    <div class="drop-zone" id="dropZone"
-      ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
-      <input type="file" id="fileInput" accept=".pdf,.txt" onchange="handleFileSelect(event)">
-      <div class="drop-icon" id="dropIcon">📄</div>
-      <div class="drop-label" id="dropLabel">Drag &amp; drop your file here</div>
-      <div class="drop-hint">or <span>click to browse</span> &nbsp;·&nbsp; .pdf &amp; .txt supported</div>
-    </div>
-
-    <div class="upload-progress" id="uploadProgress">
-      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
-      <div class="progress-label" id="progressLabel">Processing file…</div>
-    </div>
-
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeUploadModal()">✕ Close</button>
-    </div>
-  </div>
-</div>
 
 <script>
   // ── State ──
@@ -953,6 +1049,7 @@
   }
 
   function formatContent(text) {
+    const codeBlocks = [];
     text = text.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
       const l = lang || 'code';
       const runnable = ['python', 'py', 'javascript', 'js'].includes(l.toLowerCase());
@@ -960,14 +1057,19 @@
       const runBtn = runnable
         ? `<button class="run-btn" onclick="runCode(this,'${normLang}')">&#9654; Run</button>`
         : '';
-      return `<div class="code-block-wrap">
+      const blockHTML = `<div class="code-block-wrap">
         <div class="code-header"><span>${l}</span><div style="display:flex;gap:8px;align-items:center">${runBtn}<button class="copy-btn" onclick="copyCode(this)">&#10088; Copy</button></div></div>
         <pre><code>${escHtml(code.trim())}</code></pre>
       </div>`;
+      codeBlocks.push(blockHTML);
+      return `__CODE_BLOCK_${codeBlocks.length - 1}__`;
     });
+    
     text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
     text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     text = text.replace(/\n/g, '<br>');
+    
+    text = text.replace(/__CODE_BLOCK_(\d+)__/g, (_, i) => codeBlocks[parseInt(i)]);
     return text;
   }
 
@@ -1000,8 +1102,15 @@
         body: JSON.stringify({ code, language })
       });
       const data = await resp.json();
-      out.className = `code-output ${data.error ? 'error' : 'success'}`;
-      out.innerHTML = `<span class="output-label">${data.error ? '\u2717 Error' : '\u2713 Output'}</span><pre class="output-content">${escHtml(data.output || '')}</pre>`;
+      
+      if (data.success) {
+        out.className = 'code-output success';
+        out.innerHTML = `<span class="output-label">\u2713 Output</span><pre class="output-content">${escHtml(data.output || '')}</pre>`;
+      } else {
+        out.className = 'code-output error';
+        const errorText = data.error || data.output || 'Unknown error occurred.';
+        out.innerHTML = `<span class="output-label">\u2717 Error</span><pre class="output-content">${escHtml(errorText)}</pre>`;
+      }
     } catch (err) {
       out.className = 'code-output error';
       out.innerHTML = '<span class="output-label">\u2717 Error</span><pre class="output-content">Could not reach backend server.</pre>';
@@ -1138,6 +1247,230 @@ When answering:
   }
 
 
+
+  // ── Flow Visualizer Logic ──
+  let flowSteps = [];
+  let currentStepIndex = 0;
+  let animationInterval = null;
+  let isPlaying = false;
+  let lastValidMermaid = null;
+  let lastValidSteps = null;
+
+  function toggleFlowMode() {
+    const chatArea = document.getElementById('chatArea');
+    const flowArea = document.getElementById('flowArea');
+    if (flowArea.style.display === 'none') {
+      chatArea.style.display = 'none';
+      flowArea.style.display = 'flex';
+    } else {
+      chatArea.style.display = 'flex';
+      flowArea.style.display = 'none';
+    }
+  }
+
+  function cleanMermaid(code) {
+    return code
+      .replace(/```mermaid/gi, "")
+      .replace(/`/g, "")
+      .replace(/\r/g, "")
+      .replace(/graph TD\s*/i, "graph TD\n")
+      .replace(/[^a-zA-Z0-9\[\]{}\->|\s\n]/g, "")
+      .trim();
+  }
+
+  function isValidMermaid(code) {
+    return code.startsWith("graph TD") && code.includes("-->");
+  }
+
+  async function generateFlow(isRetry = false) {
+    const code = document.getElementById('flowCodeInput').value.trim();
+    if (!code) { showNotif('⚠ Please enter some code first.'); return; }
+    
+    const btn = document.getElementById('generateFlowBtn');
+    btn.disabled = true;
+    btn.textContent = isRetry ? 'Retrying...' : 'Generating...';
+    
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/flow/generate`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ code, isRetry })
+      });
+      
+      if (!resp.ok) {
+        const err = await resp.json().catch(()=>({}));
+        throw new Error(err.error || 'Failed to generate flow');
+      }
+      
+      const data = await resp.json();
+      if (!data.mermaid || !data.steps) throw new Error('Invalid response format from AI');
+      
+      const cleanedMermaid = cleanMermaid(data.mermaid);
+      if (!isValidMermaid(cleanedMermaid)) {
+        if (!isRetry) {
+          console.warn('Invalid mermaid syntax detected. Auto-retrying...');
+          return generateFlow(true);
+        }
+        throw new Error('Validation failed after retry.');
+      }
+      
+      await renderFlow(cleanedMermaid, data.steps);
+      showNotif('✅ Flowchart generated successfully!');
+    } catch (err) {
+      showNotif(`⚠ Error: ${err.message}`);
+      if (!lastValidMermaid) {
+        renderFallback();
+      } else {
+        showErrorOverlay();
+      }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Generate Flow';
+    }
+  }
+
+  async function renderFlow(mermaidCode, steps, isFallback = false) {
+    flowSteps = steps;
+    currentStepIndex = -1;
+    pauseAnimation();
+    
+    const container = document.getElementById('mermaidContainer');
+    const previousHTML = container.innerHTML;
+    
+    const graphId = 'flowGraph_' + Date.now();
+    container.innerHTML = `<div class="mermaid" id="${graphId}">${mermaidCode}</div>`;
+    
+    try {
+      await mermaid.run({
+        querySelector: '.mermaid'
+      });
+      
+      document.getElementById('playBtn').disabled = false;
+      document.getElementById('nextBtn').disabled = false;
+      document.getElementById('resetBtn').disabled = false;
+      updateControlsUI();
+      
+      if (!isFallback) {
+        lastValidMermaid = mermaidCode;
+        lastValidSteps = steps;
+      }
+    } catch (err) {
+      if (lastValidMermaid) {
+        container.innerHTML = previousHTML;
+        flowSteps = lastValidSteps;
+        showErrorOverlay();
+      } else {
+        renderFallback();
+      }
+    }
+  }
+
+  function renderFallback() {
+    const fallbackMermaid = `graph TD\nA[Start] --> B[Processing]\nB --> C[End]`;
+    const fallbackSteps = ['A', 'B', 'C'];
+    renderFlow(fallbackMermaid, fallbackSteps, true).then(() => {
+      showErrorOverlay();
+    });
+  }
+
+  function showErrorOverlay() {
+    const container = document.getElementById('mermaidContainer');
+    const existing = container.querySelector('.error-overlay');
+    if (existing) existing.remove();
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'error-overlay';
+    overlay.style.cssText = "position:absolute; top:20px; left:50%; transform:translateX(-50%); background:var(--surface2); border:1px solid #f87171; padding:15px 20px; text-align:center; border-radius:10px; z-index:10; box-shadow:0 10px 25px rgba(0,0,0,0.5);";
+    overlay.innerHTML = `
+      <div style="font-size:20px; margin-bottom:5px; color:#f87171">⚠ AI Syntax Error</div>
+      <div style="font-size:12px; color:var(--text); margin-bottom:15px;">The generated flow was invalid.</div>
+      <button class="flow-btn" onclick="this.parentElement.remove(); generateFlow(true)" style="padding:8px 16px; font-size:12px; width:auto;">Retry Generating Flow</button>
+      <button class="pill" onclick="this.parentElement.remove()" style="margin-left:8px;">Dismiss</button>
+    `;
+    container.style.position = 'relative';
+    container.appendChild(overlay);
+  }
+
+  function updateControlsUI() {
+    const playBtn = document.getElementById('playBtn');
+    playBtn.innerHTML = isPlaying ? '⏸ Pause' : '▶ Play';
+    document.getElementById('stepCounter').textContent = `Step: ${Math.max(0, currentStepIndex + 1)} / ${flowSteps.length}`;
+  }
+
+  function highlightNode(nodeId) {
+    document.querySelectorAll('.active-node').forEach(el => el.classList.remove('active-node'));
+    
+    if (nodeId) {
+      // Mermaid IDs usually start with 'flowchart-' and end with '-' + node_id
+      // We will look for groups that contain the nodeId in their id attribute
+      const nodes = document.querySelectorAll('.node');
+      let found = false;
+      nodes.forEach(n => {
+        // e.g. flowchart-A-41 -> n.id includes '-A-' or ends with '-A'
+        if (n.id.includes(`-${nodeId}-`) || n.id.endsWith(`-${nodeId}`) || n.id === nodeId) {
+          n.classList.add('active-node');
+          found = true;
+          n.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+      });
+      
+      if (!found) {
+        // Fallback generic search
+        const fallbackNode = document.querySelector(`[id*="${nodeId}"]`);
+        if (fallbackNode) {
+          fallbackNode.classList.add('active-node');
+          fallbackNode.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+      }
+    }
+  }
+
+  function nextStep() {
+    if (currentStepIndex >= flowSteps.length - 1) {
+      pauseAnimation();
+      return;
+    }
+    currentStepIndex++;
+    highlightNode(flowSteps[currentStepIndex]);
+    updateControlsUI();
+  }
+
+  function togglePlay() {
+    if (isPlaying) {
+      pauseAnimation();
+    } else {
+      if (currentStepIndex >= flowSteps.length - 1) {
+        resetAnimation();
+      }
+      isPlaying = true;
+      updateControlsUI();
+      const speed = parseInt(document.getElementById('speedSelect').value, 10);
+      nextStep();
+      animationInterval = setInterval(nextStep, speed);
+    }
+  }
+
+  function pauseAnimation() {
+    isPlaying = false;
+    clearInterval(animationInterval);
+    updateControlsUI();
+  }
+
+  function resetAnimation() {
+    pauseAnimation();
+    currentStepIndex = -1;
+    highlightNode(null);
+    updateControlsUI();
+    const container = document.getElementById('mermaidContainer');
+    container.scrollTo(0,0);
+  }
+
+  function handleSpeedChange() {
+    if (isPlaying) {
+      pauseAnimation();
+      togglePlay();
+    }
+  }
 
 </script>
 </body>

@@ -6,8 +6,26 @@
 import { Router } from 'express';
 import { spawn } from 'child_process';
 import vm from 'vm';
+import fs from 'fs/promises';
+import path from 'path';
+import os from 'os';
+import crypto from 'crypto';
 
 export const executeRouter = Router();
+
+/**
+ * Cleans user python input by removing markdown formatting and docstrings.
+ */
+function cleanPythonCode(code) {
+  let cleaned = code.replace(/```python/gi, '').replace(/```/g, '');
+  cleaned = cleaned.replace(/\r\n/g, '\n');
+  
+  // Safely strip multi-line string literals acting as docstrings.
+  cleaned = cleaned.replace(/"""[\s\S]*?"""/g, '');
+  cleaned = cleaned.replace(/'''[\s\S]*?'''/g, '');
+  
+  return cleaned.trim();
+}
 
 const EXECUTION_TIMEOUT_MS = 5000; // 5 seconds max
 
@@ -16,21 +34,21 @@ executeRouter.post('/execute', async (req, res, next) => {
     const { code, language } = req.body;
 
     if (!code || typeof code !== 'string') {
-      return res.status(400).json({ error: 'No code provided to execute.' });
+      return res.status(400).json({ success: false, error: 'No code provided to execute.' });
     }
 
     if (language === 'javascript' || language === 'js') {
       const output = await executeJavaScript(code);
-      return res.json({ language: 'javascript', output });
+      return res.json({ success: true, language: 'javascript', output, error: null });
     } else if (language === 'python' || language === 'py') {
       const output = await executePython(code);
-      return res.json({ language: 'python', output });
+      return res.json({ success: true, language: 'python', output, error: null });
     } else {
-      return res.status(400).json({ error: `Unsupported language: ${language}` });
+      return res.status(400).json({ success: false, error: `Unsupported language: ${language}` });
     }
   } catch (err) {
     // Return execution errors as normal response data, not 500 server errors
-    return res.json({ language: req.body.language, output: err.message || String(err), error: true });
+    return res.json({ success: false, language: req.body.language, output: '', error: err.message || String(err) });
   }
 });
 
@@ -76,49 +94,56 @@ function executeJavaScript(code) {
 }
 
 /**
- * Execute Python code via a child process.
+ * Execute Python code via a child process and temporary file.
  */
 function executePython(code) {
-  return new Promise((resolve, reject) => {
-    // Check if on windows or linux
+  return new Promise(async (resolve, reject) => {
     const pyCommand = process.platform === 'win32' ? 'python' : 'python3';
     
-    // Spawn python in interactive/stdin mode
-    const processInstance = spawn(pyCommand, ['-c', 'import sys; exec(sys.stdin.read())']);
+    const cleanedCode = cleanPythonCode(code);
+    const tempFileName = `exec_${crypto.randomUUID()}.py`;
+    const tempFilePath = path.join(os.tmpdir(), tempFileName);
     
-    let output = '';
-    let errorOutput = '';
+    try {
+      await fs.writeFile(tempFilePath, cleanedCode, 'utf8');
+      
+      const processInstance = spawn(pyCommand, [tempFilePath]);
+      
+      let output = '';
+      let errorOutput = '';
 
-    // Timeout control
-    const timeoutHandle = setTimeout(() => {
-      processInstance.kill('SIGKILL');
-      reject('Python Execution Error:\nProcess timed out after 5 seconds.');
-    }, EXECUTION_TIMEOUT_MS);
+      const timeoutHandle = setTimeout(() => {
+        processInstance.kill('SIGKILL');
+        errorOutput += '\n[Timeout] Execution took longer than 5 seconds.';
+      }, EXECUTION_TIMEOUT_MS);
 
-    processInstance.stdout.on('data', (data) => {
-      output += data.toString();
-    });
+      processInstance.stdout.on('data', (data) => {
+        output += data.toString();
+      });
 
-    processInstance.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
+      processInstance.stderr.on('data', (data) => {
+        errorOutput += data.toString();
+      });
 
-    processInstance.on('close', (code) => {
-      clearTimeout(timeoutHandle);
-      if (code !== 0) {
-        reject(`Python Runtime Error:\n${errorOutput.trim() || 'Unknown exit code ' + code}`);
-      } else {
-        resolve(output.trim() || 'Execution complete (no output).');
-      }
-    });
+      processInstance.on('close', async (exitCode) => {
+        clearTimeout(timeoutHandle);
+        try { await fs.unlink(tempFilePath); } catch (e) {}
+        
+        if (exitCode !== 0 || errorOutput) {
+          reject(`Python Runtime Error:\n${errorOutput.trim() || 'Unknown exit code ' + exitCode}`);
+        } else {
+          resolve(output.trim() || 'Execution complete (no output).');
+        }
+      });
 
-    processInstance.on('error', (err) => {
-      clearTimeout(timeoutHandle);
-      reject(`Failed to spawn Python process. Is Python installed?\n${err.message}`);
-    });
-
-    // Write code to stdin
-    processInstance.stdin.write(code);
-    processInstance.stdin.end();
+      processInstance.on('error', async (err) => {
+        clearTimeout(timeoutHandle);
+        try { await fs.unlink(tempFilePath); } catch (e) {}
+        reject(`Failed to spawn Python process. Is Python installed?\n${err.message}`);
+      });
+      
+    } catch (err) {
+      reject(`Internal Error preparing execution: ${err.message}`);
+    }
   });
 }
