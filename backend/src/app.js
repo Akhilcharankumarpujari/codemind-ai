@@ -12,11 +12,12 @@ import { uploadRouter } from './routes/upload.js';
 import { executeRouter } from './routes/execute.js';
 import { authRouter } from './routes/auth.js';
 import { flowRouter } from './routes/flow.js';
+import { complexityRouter } from './routes/complexity.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
+const __dirname = path.dirname(__filename);
 
 // Root of the project (one level above /backend/src)
 const PROJECT_ROOT = path.resolve(__dirname, '..', '..');
@@ -84,6 +85,7 @@ app.use('/api', chatRouter);
 app.use('/api', uploadRouter);
 app.use('/api', executeRouter);
 app.use('/api', flowRouter);
+app.use('/api', complexityRouter);
 
 // Health check (Render / Railway keep-alive)
 app.get('/health', (_req, res) => res.json({ status: 'ok', ts: Date.now() }));

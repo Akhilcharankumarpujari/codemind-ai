@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CodeMind AI — Intelligent Coding Assistant</title>
+<title>CodeMind AI — DSA & Coding Interview Assistant</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
 <style>
   :root {
@@ -40,7 +40,7 @@
   html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font-ui); overflow: hidden; }
 
   /* Layout */
-  .app { display: grid; grid-template-columns: 260px 1fr; height: 100vh; }
+  .app { display: grid; grid-template-columns: 260px 1fr; height: 100vh; width: 100%; }
 
   /* ─── LEFT SIDEBAR ─── */
   .sidebar {
@@ -130,13 +130,7 @@
     text-align: center; padding: 40px 20px; margin: auto 0;
     animation: fadeUp 0.5s ease;
   }
-  .welcome-icon {
-    width: 64px; height: 64px; margin: 0 auto 20px;
-    background: linear-gradient(135deg, rgba(0,229,255,0.15), rgba(124,58,237,0.15));
-    border: 1px solid rgba(0,229,255,0.2);
-    border-radius: 18px; display: flex; align-items: center; justify-content: center;
-    font-size: 28px;
-  }
+  
   .welcome h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
   .welcome h2 span { color: var(--accent); }
   .welcome p { color: var(--muted); font-size: 14px; max-width: 380px; margin: 0 auto 28px; line-height: 1.6; font-family: var(--font-mono); }
@@ -560,6 +554,513 @@
     padding: 6px 10px; border-radius: 6px; font-size: 12px; font-family: var(--font-ui);
     outline: none;
   }
+
+  /* ─── COMPLEXITY ANALYZER ─── */
+  .complexity-area {
+    display: flex; height: 100vh; background: var(--bg); overflow: hidden;
+  }
+  .cx-left {
+    width: 40%; display: flex; flex-direction: column; border-right: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .cx-right {
+    width: 60%; display: flex; flex-direction: column; background: var(--bg); overflow-y: auto;
+  }
+  .cx-topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--border);
+    background: var(--surface); flex-shrink: 0;
+  }
+  .cx-title { font-size: 15px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+  .cx-title span { color: #f59e0b; }
+  .cx-body { flex: 1; display: flex; flex-direction: column; padding: 20px; gap: 14px; overflow-y: auto; }
+  .cx-label { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 6px; }
+  .cx-code-input {
+    flex: 1; min-height: 200px; width: 100%; background: var(--code-bg);
+    border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    color: var(--text); font-family: var(--font-mono); font-size: 13px;
+    resize: none; outline: none; line-height: 1.6; transition: border-color 0.2s;
+  }
+  .cx-code-input:focus { border-color: #f59e0b; }
+  .cx-lang-select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; color: var(--text);
+    font-family: var(--font-ui); font-size: 13px; outline: none; cursor: pointer;
+  }
+  .cx-lang-select:focus { border-color: #f59e0b; }
+  .cx-analyze-btn {
+    width: 100%; padding: 13px; background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: none; border-radius: 10px; color: #000; font-family: var(--font-ui);
+    font-size: 14px; font-weight: 800; cursor: pointer; transition: opacity 0.2s, transform 0.15s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .cx-analyze-btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+  .cx-analyze-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  
+  /* ── Result Panel ── */
+  .cx-result-area { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .cx-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    height: 100%; min-height: 300px; color: var(--muted); text-align: center; gap: 12px; padding: 40px;
+  }
+  .cx-placeholder-icon { font-size: 52px; }
+  .cx-placeholder h3 { font-size: 16px; font-weight: 700; color: var(--text); }
+  .cx-placeholder p { font-size: 13px; line-height: 1.6; font-family: var(--font-mono); }
+  
+  .cx-loading {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 300px; gap: 16px; color: var(--muted);
+  }
+  .cx-spinner {
+    width: 44px; height: 44px; border: 3px solid var(--border);
+    border-top-color: #f59e0b; border-radius: 50%;
+    animation: cx-spin 0.8s linear infinite;
+  }
+  @keyframes cx-spin { to { transform: rotate(360deg); } }
+  .cx-loading p { font-family: var(--font-mono); font-size: 13px; }
+  
+  /* ── Big O Card ── */
+  .cx-bigo-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cx-bigo-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; display: flex; flex-direction: column;
+    gap: 6px; position: relative; overflow: hidden; transition: transform 0.2s;
+  }
+  .cx-bigo-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+  .cx-bigo-card.time::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
+  .cx-bigo-card.space::before { background: linear-gradient(90deg, #00e5ff, #7c3aed); }
+  .cx-bigo-label { font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  .cx-bigo-value { font-size: 26px; font-weight: 800; font-family: var(--font-mono); letter-spacing: -0.5px; }
+  .cx-bigo-card.time .cx-bigo-value { color: #f59e0b; }
+  .cx-bigo-card.space .cx-bigo-value { color: #00e5ff; }
+  .cx-bigo-sub { font-size: 11px; color: var(--muted); font-family: var(--font-mono); line-height: 1.4; margin-top: 4px; }
+  
+  /* ── Info Blocks ── */
+  .cx-block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; }
+  .cx-block-title { font-size: 12px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .cx-block-title .cx-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .cx-block p, .cx-block li { font-size: 13px; color: var(--text); line-height: 1.7; font-family: var(--font-mono); }
+  .cx-block ul { padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+  
+  /* ── Comparison Row ── */
+  .cx-compare-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .cx-compare-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+  .cx-compare-card.brute { border-top: 2px solid #ef4444; }
+  .cx-compare-card.optimal { border-top: 2px solid #10b981; }
+  .cx-compare-label { font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .cx-compare-card.brute .cx-compare-label { color: #ef4444; }
+  .cx-compare-card.optimal .cx-compare-label { color: #10b981; }
+  .cx-compare-val { font-size: 18px; font-weight: 800; font-family: var(--font-mono); }
+  .cx-compare-card.brute .cx-compare-val { color: #ef4444; }
+  .cx-compare-card.optimal .cx-compare-val { color: #10b981; }
+  
+  /* ── Better Code Block ── */
+  .cx-code-block {
+    background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 14px 16px; margin-top: 10px; overflow-x: auto;
+    font-family: var(--font-mono); font-size: 12.5px; line-height: 1.6; color: var(--text); white-space: pre;
+  }
+  
+  .cx-error-msg {
+    background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.3); border-radius: 10px;
+    padding: 16px 18px; color: #f87171; font-family: var(--font-mono); font-size: 13px; line-height: 1.6;
+  }
+
+
+  /* ─── ROADMAP MODAL ─── */
+  .rm-modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px); z-index: 300;
+    display: flex; align-items: center; justify-content: center;
+    animation: fadeUp 0.2s ease;
+  }
+  .rm-modal-overlay.hidden { display: none; }
+  .rm-modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; width: 600px; max-width: 95vw; max-height: 85vh;
+    padding: 28px; box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .rm-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+  .rm-title { font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; color: var(--text); }
+  .rm-body { overflow-y: auto; flex: 1; padding-right: 10px; }
+  .rm-level { margin-bottom: 24px; position: relative; }
+  .rm-level-title { font-size: 14px; font-weight: 700; color: #10b981; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; }
+  .rm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .rm-topic {
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 12px 14px; border-radius: 8px; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center; gap: 10px;
+  }
+  .rm-topic:hover { border-color: #10b981; background: rgba(16,185,129,0.06); }
+  .rm-topic-icon { font-size: 18px; }
+  .rm-topic-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .rm-topic-status { margin-left: auto; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--muted); }
+  .rm-topic.completed .rm-topic-status { background: #10b981; border-color: #10b981; position: relative; }
+  .rm-topic.completed .rm-topic-status::after { content: '✓'; position: absolute; color: #000; font-size: 10px; top: 50%; left: 50%; transform: translate(-50%, -50%); font-weight: bold; }
+
+
+  
+
+
+  /* ─── RESPONSIVE (Mobile ≤600px) ─── */
+  .hamburger-btn {
+    display: none;
+    background: none; border: none; color: var(--text);
+    font-size: 22px; cursor: pointer; padding: 0 8px 0 0; flex-shrink: 0;
+    align-items: center; justify-content: center;
+  }
+  .mobile-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55); z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+  .mobile-overlay.open { display: block; }
+
+  @media (max-width: 600px) {
+    .app { display: flex; flex-direction: column; }
+
+    .sidebar {
+      position: fixed; top: 0; left: -100%; width: 75vw; max-width: 280px;
+      height: 100vh; z-index: 1000;
+      transition: left 0.3s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 6px 0 32px rgba(0,0,0,0.6);
+    }
+    .sidebar.open { left: 0; }
+
+    .hamburger-btn { display: flex; }
+
+    .chat-area { width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+
+    .messages { padding: 14px 12px; gap: 12px; }
+    .msg { max-width: 100%; }
+    .msg-bubble { font-size: 13px; padding: 10px 12px; }
+
+    .input-container { margin: 8px; padding: 10px 12px; border-radius: 12px; }
+    #chatInput, #userInput { font-size: 14px; }
+
+    .welcome { padding: 20px 14px; }
+    .welcome h2 { font-size: 18px; }
+    .welcome p { font-size: 12px; max-width: 100%; }
+
+    .suggestion-grid { grid-template-columns: 1fr; }
+
+    .flow-area, .complexity-area { flex-direction: column; height: auto; min-height: 100vh; }
+    .flow-left, .cx-left { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+    .flow-right, .cx-right { width: 100%; min-height: 350px; }
+
+    .chat-topbar { padding: 10px 14px; }
+    .topbar-pills { gap: 4px; }
+    .pill { padding: 4px 8px; font-size: 10px; }
+  }
+
+
+  /* ─── PREMIUM HERO LOGO ─── */
+  .hero-logo-wrapper {
+    position: relative; width: 110px; height: 110px; margin: 0 auto 24px;
+    display: flex; align-items: center; justify-content: center;
+    animation: floatingLogo 6s ease-in-out infinite;
+  }
+  
+  .hero-logo-wrapper::before {
+    content: ''; position: absolute; width: 160%; height: 160%;
+    background: radial-gradient(circle, rgba(0, 229, 255, 0.3) 0%, rgba(124, 58, 237, 0.15) 40%, transparent 70%);
+    z-index: -1; border-radius: 50%; filter: blur(25px); opacity: 0.9;
+    animation: pulseGlow 4s ease-in-out infinite alternate;
+  }
+
+  .welcome-icon {
+    width: 90px; height: 90px; position: relative; border-radius: 26px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-top: 1px solid rgba(255,255,255,0.25);
+    border-left: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 
+      0 12px 32px rgba(0,0,0,0.5),
+      0 8px 16px rgba(0, 229, 255, 0.1),
+      inset 0 0 0 1px rgba(255,255,255,0.05),
+      inset 0 2px 12px rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 1; overflow: hidden; margin: 0;
+  }
+
+  .welcome-icon:hover {
+    transform: translateY(-6px) scale(1.05);
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.03) 100%);
+    box-shadow: 
+      0 18px 40px rgba(0,0,0,0.6),
+      0 12px 24px rgba(0, 229, 255, 0.25),
+      inset 0 0 0 1px rgba(255,255,255,0.1),
+      inset 0 2px 18px rgba(255,255,255,0.25);
+    border-top: 1px solid rgba(255,255,255,0.4);
+  }
+
+  .welcome-icon img {
+    width: 68%; height: 68%; object-fit: contain;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+    transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  
+  .welcome-icon:hover img {
+    transform: scale(1.15) rotate(-2deg);
+    filter: drop-shadow(0 8px 16px rgba(0, 229, 255, 0.5));
+  }
+
+  @keyframes floatingLogo {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+  }
+  
+  @keyframes pulseGlow {
+    0% { opacity: 0.6; filter: blur(20px); transform: scale(0.95); }
+    100% { opacity: 1; filter: blur(28px); transform: scale(1.05); }
+  }
+
+
+  /* ═══════════════════════════════════════════════════
+     PREMIUM ANIMATION LAYER — CodeMind AI
+     Zero layout change. Pure motion polish.
+  ════════════════════════════════════════════════════ */
+
+  /* ── Global Transition Reset ── */
+  *, *::before, *::after {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  /* ── Page Load: Sidebar Fade-In ── */
+  .sidebar {
+    animation: sidebarReveal 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes sidebarReveal {
+    from { opacity: 0; transform: translateX(-20px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+
+  /* ── Page Load: Main Area Slide-Up ── */
+  .chat-area, .flow-area, .complexity-area {
+    animation: mainReveal 0.6s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes mainReveal {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Page Load: Welcome section stagger ── */
+  .welcome h2 {
+    animation: fadeSlideUp 0.55s 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .welcome p {
+    animation: fadeSlideUp 0.55s 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Sidebar Nav Items: Hover Glow + Slide ── */
+  .nav-item, .history-item {
+    transition: background 0.22s, color 0.22s, transform 0.22s, box-shadow 0.22s !important;
+    position: relative;
+    overflow: hidden;
+  }
+  .nav-item::before, .history-item::before {
+    content: '';
+    position: absolute; inset: 0; left: -100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+    transition: left 0.5s ease;
+    pointer-events: none;
+  }
+  .nav-item:hover::before, .history-item:hover::before { left: 100%; }
+  .nav-item:hover, .history-item:hover {
+    transform: translateX(3px);
+    box-shadow: inset 3px 0 0 var(--accent), 0 0 12px rgba(0, 229, 255, 0.06);
+  }
+  .nav-item.active {
+    box-shadow: inset 3px 0 0 var(--accent), 0 0 16px rgba(0, 229, 255, 0.1);
+  }
+
+  /* ── Buttons: Premium Hover Lift + Glow ── */
+  button, .btn, .pill, .upload-btn, .cx-analyze-btn,
+  #sendBtn, #flowRunBtn, #cxAnalyzeBtn {
+    transition: transform 0.2s, box-shadow 0.2s, background 0.25s, opacity 0.2s !important;
+    position: relative;
+    overflow: hidden;
+  }
+  button::after, .upload-btn::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at center, rgba(255,255,255,0.12) 0%, transparent 70%);
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  button:hover::after, .upload-btn:hover::after { opacity: 1; }
+
+  button:hover:not(:disabled) { transform: translateY(-2px); }
+  button:active:not(:disabled) { transform: translateY(0) scale(0.97); }
+
+  /* Send button special glow */
+  #sendBtn:hover {
+    box-shadow: 0 4px 20px rgba(0, 229, 255, 0.45), 0 0 0 1px rgba(0, 229, 255, 0.3);
+  }
+  #sendBtn:active {
+    box-shadow: 0 2px 8px rgba(0, 229, 255, 0.3);
+    transform: scale(0.95);
+  }
+
+  .cx-analyze-btn:hover, #cxAnalyzeBtn:hover {
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.4);
+  }
+
+  /* ── Input Box: Focus Glow ── */
+  #chatInput, #userInput, .cx-code-input, textarea {
+    transition: border-color 0.25s, box-shadow 0.25s, background 0.25s !important;
+  }
+  #chatInput:focus, #userInput:focus, textarea:focus {
+    border-color: rgba(0, 229, 255, 0.5) !important;
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.08), 0 0 20px rgba(0, 229, 255, 0.06) !important;
+    outline: none;
+  }
+  .input-container:focus-within {
+    border-color: rgba(0, 229, 255, 0.3) !important;
+    box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.07), 0 8px 24px rgba(0,0,0,0.2) !important;
+    transition: border-color 0.25s, box-shadow 0.3s;
+  }
+
+  /* ── Chat Messages: Smooth Appear ── */
+  .msg {
+    animation: msgAppear 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes msgAppear {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* User message specific */
+  .msg.user-msg {
+    animation: msgAppearRight 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes msgAppearRight {
+    from { opacity: 0; transform: translateX(12px) translateY(6px); }
+    to   { opacity: 1; transform: translateX(0) translateY(0); }
+  }
+
+  /* Code block appear */
+  pre, .code-block {
+    animation: codeBlockAppear 0.4s 0.1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes codeBlockAppear {
+    from { opacity: 0; transform: scale(0.98) translateY(8px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* ── Typing Indicator (AI loading) ── */
+  .typing-indicator {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 10px 16px; background: var(--surface2);
+    border-radius: 12px; border: 1px solid var(--border);
+  }
+  .typing-dot {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: typingBounce 1.2s ease-in-out infinite;
+  }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingBounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+    30%           { transform: translateY(-8px); opacity: 1; }
+  }
+
+  /* ── Shimmer Loading for Cards ── */
+  .shimmer-loading {
+    background: linear-gradient(90deg,
+      var(--surface) 25%, var(--surface2) 50%, var(--surface) 75%);
+    background-size: 200% 100%;
+    animation: shimmerPulse 1.6s infinite;
+    border-radius: 8px;
+  }
+  @keyframes shimmerPulse {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+  }
+
+  /* ── Card Hover Elevation ── */
+  .cx-card, .suggestion-card, .cx-bigo-box, .cx-compare-col {
+    transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s !important;
+  }
+  .cx-card:hover, .suggestion-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.35), 0 0 0 1px rgba(0, 229, 255, 0.12) !important;
+    border-color: rgba(0, 229, 255, 0.2) !important;
+  }
+
+  /* ── Flow Visualizer Node Transitions ── */
+  .mermaid svg .node rect, .mermaid svg .node circle,
+  .mermaid svg .node ellipse, .mermaid svg .node polygon {
+    transition: fill 0.35s, stroke 0.35s, filter 0.35s !important;
+  }
+  .mermaid svg .edgePath path {
+    transition: stroke 0.35s, stroke-width 0.35s !important;
+  }
+
+  /* ── Pill / Badge Hover ── */
+  .pill {
+    transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.2s !important;
+  }
+  .pill:hover { transform: translateY(-1px); }
+  .pill.active { animation: pillPulse 2.5s ease-in-out infinite; }
+  @keyframes pillPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.25); }
+    50%       { box-shadow: 0 0 0 5px rgba(0, 229, 255, 0); }
+  }
+
+  /* ── Logo Sidebar: Subtle Icon Pulse ── */
+  .logo-icon img {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.35s;
+  }
+  .logo-icon:hover img {
+    transform: scale(1.12) rotate(-3deg);
+    filter: drop-shadow(0 4px 10px rgba(0, 229, 255, 0.4));
+  }
+
+  /* ── View Transitions: Smooth Area Switch ── */
+  .chat-area[style*="block"], .flow-area[style*="block"], .complexity-area[style*="block"] {
+    animation: viewFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  @keyframes viewFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Scrollbar Micro-Animation ── */
+  ::-webkit-scrollbar-thumb {
+    transition: background 0.2s;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent) !important;
+  }
+
+  /* ── Notification Toast ── */
+  .notification {
+    animation: toastSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  @keyframes toastSlideIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* ── Reduce Motion Accessibility ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 <script>
@@ -572,22 +1073,91 @@
     });
   });
 </script>
+<link rel="icon" type="image/png" href="/favicon.png">
 </head>
 <body>
 <div class="app">
+  <div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileSidebar()"></div>
+  <!-- ROADMAP MODAL -->
+  <div class="rm-modal-overlay hidden" id="roadmapModal">
+    <div class="rm-modal">
+      <div class="rm-header">
+        <div class="rm-title">🗺️ DSA Mastery Roadmap</div>
+        <button class="pill" onclick="toggleRoadmapMode()">✕ Close</button>
+      </div>
+      <div class="rm-body">
+        
+        <div class="rm-level">
+          <div class="rm-level-title">Step 1: The Basics</div>
+          <div class="rm-grid">
+            <div class="rm-topic completed" onclick="askRoadmap('Arrays & Hashing')">
+              <span class="rm-topic-icon">📦</span><span class="rm-topic-name">Arrays & Hashing</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Two Pointers')">
+              <span class="rm-topic-icon">👉</span><span class="rm-topic-name">Two Pointers</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Sliding Window')">
+              <span class="rm-topic-icon">🪟</span><span class="rm-topic-name">Sliding Window</span><div class="rm-topic-status"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rm-level">
+          <div class="rm-level-title">Step 2: Core Data Structures</div>
+          <div class="rm-grid">
+            <div class="rm-topic" onclick="askRoadmap('Linked Lists')">
+              <span class="rm-topic-icon">🔗</span><span class="rm-topic-name">Linked Lists</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Stack')">
+              <span class="rm-topic-icon">📚</span><span class="rm-topic-name">Stack</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Binary Search')">
+              <span class="rm-topic-icon">🔎</span><span class="rm-topic-name">Binary Search</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Trees')">
+              <span class="rm-topic-icon">🌳</span><span class="rm-topic-name">Trees</span><div class="rm-topic-status"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rm-level">
+          <div class="rm-level-title">Step 3: Advanced Techniques</div>
+          <div class="rm-grid">
+            <div class="rm-topic" onclick="askRoadmap('Graphs')">
+              <span class="rm-topic-icon">🕸️</span><span class="rm-topic-name">Graphs</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Dynamic Programming')">
+              <span class="rm-topic-icon">🧠</span><span class="rm-topic-name">1D / 2D DP</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Backtracking')">
+              <span class="rm-topic-icon">🔙</span><span class="rm-topic-name">Backtracking</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Heap / Priority Queue')">
+              <span class="rm-topic-icon">⛰️</span><span class="rm-topic-name">Heaps</span><div class="rm-topic-status"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
 
   <!-- LEFT SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-header">
       <div class="logo">
-        <div class="logo-icon">⚡</div>
+        <div class="logo-icon" style="background: none; padding: 0;"><img src="/logo.png" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" alt="Logo"></div>
         Code<span>Mind</span>
       </div>
       <button class="new-chat-btn" onclick="newChat()">
         <span>✦</span> New conversation
       </button>
       <button class="upload-btn" onclick="toggleFlowMode()" id="flowVisBtn" style="border-color:var(--accent2); color:var(--accent2); background:rgba(124,58,237,0.06); margin-top:8px">
-        📊 Flow Visualizer
+        Flow Visualizer
+      </button>
+      <button class="upload-btn" onclick="toggleComplexityMode()" id="cxBtn" style="border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,0.06); margin-top:8px">
+        Complexity Analyzer
       </button>
     </div>
     <div class="sidebar-section">History</div>
@@ -615,10 +1185,11 @@
   <!-- MAIN CHAT -->
   <main class="chat-area" id="chatArea">
     <div class="chat-topbar">
-      <div class="chat-title">Tech &amp; Coding <span>Assistant</span></div>
+      <button class="hamburger-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="Open menu">☰</button>
+      <div class="chat-title">Code<span>Mind</span> AI</div>
       <div class="topbar-pills">
         <span class="agent-badge" id="agentBadge" style="display:none"></span>
-        <button class="pill active" id="ragPill" onclick="toggleRag()">&#128450; RAG</button>
+        <button class="pill active" id="ragPill" onclick="toggleRag()">RAG</button>
         <button class="pill" id="themePill" onclick="toggleTheme()" title="Toggle dark/light mode">&#9790;</button>
         <button class="pill" id="loginPill" onclick="window.location.href='/login'" style="display:none">Sign In</button>
         <button class="pill" id="logoutPill" onclick="logout()" style="display:none" title="Sign out">&#x2715; Sign out</button>
@@ -627,27 +1198,14 @@
 
     <div class="messages" id="messages">
       <div class="welcome" id="welcome">
-        <div class="welcome-icon">⚡</div>
-        <h2>Hello, <span>Coder</span>.</h2>
-        <p>I'm your AI-powered tech assistant. Ask me anything about code, debugging, architecture, or concepts.</p>
-        <div class="suggestion-grid">
-          <div class="suggestion" onclick="sendSuggestion(this)">
-            <strong>🐛 Debug</strong>
-            Explain this error and how to fix it
-          </div>
-          <div class="suggestion" onclick="sendSuggestion(this)">
-            <strong>📐 Architecture</strong>
-            Best practices for REST API design
-          </div>
-          <div class="suggestion" onclick="sendSuggestion(this)">
-            <strong>🚀 Explain</strong>
-            How does async/await work in JS?
-          </div>
-          <div class="suggestion" onclick="sendSuggestion(this)">
-            <strong>🔧 Generate</strong>
-            Write a Python web scraper example
-          </div>
+        <div class="hero-logo-wrapper">
+        <div class="welcome-icon">
+          <img src="/logo.png" alt="CodeMind AI Logo">
         </div>
+      </div>
+        <h2>Hello, <span>Coder</span>.</h2>
+        <p>I'm your AI-powered Coding Assistant. Ask me about Data Structures, Algorithms, problem solving, dry runs, and coding interview preparation.</p>
+        
       </div>
     </div>
 
@@ -668,10 +1226,62 @@
     </div>
   </main>
 
+  
+  <!-- COMPLEXITY ANALYZER -->
+  <main class="complexity-area" id="complexityArea" style="display:none">
+    <div class="cx-left">
+      <div class="cx-topbar">
+        <div class="cx-title">Complexity <span>Analyzer</span></div>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">DSA Mentor Mode</span>
+      </div>
+      <div class="cx-body">
+        <div>
+          <div class="cx-label">Select Language</div>
+          <select class="cx-lang-select" id="cxLang">
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="java">Java</option>
+            <option value="c++">⚙ C++</option>
+          </select>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div class="cx-label">Paste Your Code</div>
+          <textarea class="cx-code-input" id="cxCodeInput" placeholder="# Paste your code here...
+def two_sum(nums, target):
+    for i in range(len(nums)):
+        for j in range(i+1, len(nums)):
+            if nums[i] + nums[j] == target:
+                return [i, j]
+    return []"></textarea>
+        </div>
+        <button class="cx-analyze-btn" id="cxAnalyzeBtn" onclick="analyzeComplexity()">
+          Analyze Complexity
+        </button>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);text-align:center;line-height:1.6">
+          Detects: nested loops · recursion · DP · divide &amp; conquer<br>binary search · two pointers · sliding window · graphs
+        </div>
+      </div>
+    </div>
+
+    <div class="cx-right">
+      <div class="cx-topbar" style="border-left:none">
+        <div class="cx-title" style="color:var(--text)">Analysis <span>Results</span></div>
+        <button class="pill" onclick="toggleComplexityMode()">✕ Close</button>
+      </div>
+      <div id="cxResults">
+        <div class="cx-placeholder">
+          <div class="cx-placeholder-icon">🔍</div>
+          <h3>No Code Analyzed Yet</h3>
+          <p>Paste your code on the left, select your language,<br>then click <strong>Analyze Complexity</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
   <!-- FLOW VISUALIZER -->
   <main class="flow-area" id="flowArea" style="display:none">
     <div class="flow-left">
-      <div class="flow-header"><span>⚡</span> Flow Visualizer</div>
+      <div class="flow-header"><span></span> Flow Visualizer</div>
       <div style="font-size:12px; color:var(--muted); margin-bottom:12px">Paste your code below to generate an animated execution flowchart.</div>
       <textarea class="flow-code-input" id="flowCodeInput" placeholder="function example() {
   let x = 10;
@@ -684,12 +1294,12 @@
     </div>
     <div class="flow-right">
       <div class="chat-topbar" style="border-bottom: 1px solid var(--border); background: var(--surface);">
-        <div class="chat-title">Execution <span>Graph</span></div>
+      <div class="chat-title">Execution <span>Graph</span></div>
         <button class="pill" onclick="toggleFlowMode()">✕ Close</button>
       </div>
       <div class="mermaid-container" id="mermaidContainer">
         <div style="color:var(--muted); font-size:13px; text-align:center;">
-          <div style="font-size:24px; margin-bottom:10px">📊</div>
+          <div style="font-size:24px; margin-bottom:10px"></div>
           Graph will appear here
         </div>
       </div>
@@ -992,18 +1602,25 @@
   }
 
   function newChat() {
+    // Close sidebar on mobile if open
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    if (window.innerWidth <= 600) {
+      if (sidebar) sidebar.classList.remove('open');
+      if (overlay) overlay.classList.remove('open');
+    }
+
     conversationHistory = [];
     const msgs = document.getElementById('messages');
     msgs.innerHTML = `<div class="welcome" id="welcome">
-      <div class="welcome-icon">⚡</div>
-      <h2>Hello, <span>Coder</span>.</h2>
-      <p>I'm your AI-powered tech assistant. Ask me anything about code, debugging, architecture, or concepts.</p>
-      <div class="suggestion-grid">
-        <div class="suggestion" onclick="sendSuggestion(this)"><strong>🐛 Debug</strong>Explain this error and how to fix it</div>
-        <div class="suggestion" onclick="sendSuggestion(this)"><strong>📐 Architecture</strong>Best practices for REST API design</div>
-        <div class="suggestion" onclick="sendSuggestion(this)"><strong>🚀 Explain</strong>How does async/await work in JS?</div>
-        <div class="suggestion" onclick="sendSuggestion(this)"><strong>🔧 Generate</strong>Write a Python web scraper example</div>
+      <div class="hero-logo-wrapper">
+        <div class="welcome-icon">
+          <img src="/logo.png" alt="CodeMind AI Logo">
+        </div>
       </div>
+      <h2>Hello, <span>Coder</span>.</h2>
+      <p>I'm your AI-powered Coding Assistant. Ask me about Data Structures, Algorithms, problem solving, dry runs, and coding interview preparation.</p>
+      
     </div>`;
     const list = document.getElementById('historyList');
     const items = list.querySelectorAll('.history-item');
@@ -1029,7 +1646,7 @@
     const div = document.createElement('div');
     div.className = `msg ${role}`;
 
-    const avatar = role === 'ai' ? '⚡' : '👤';
+    const avatar = role === 'ai' ? '' : '👤';
     const name = role === 'ai' ? 'CodeMind' : 'You';
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
@@ -1257,6 +1874,14 @@ When answering:
   let lastValidSteps = null;
 
   function toggleFlowMode() {
+    // Close sidebar on mobile if open
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    if (window.innerWidth <= 600) {
+      if (sidebar) sidebar.classList.remove('open');
+      if (overlay) overlay.classList.remove('open');
+    }
+
     const chatArea = document.getElementById('chatArea');
     const flowArea = document.getElementById('flowArea');
     if (flowArea.style.display === 'none') {
@@ -1471,6 +2096,227 @@ When answering:
       togglePlay();
     }
   }
+
+
+  // ── Complexity Analyzer Logic ──
+  function toggleComplexityMode() {
+    // Close sidebar on mobile if open
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    if (window.innerWidth <= 600) {
+      if (sidebar) sidebar.classList.remove('open');
+      if (overlay) overlay.classList.remove('open');
+    }
+
+    const cxArea = document.getElementById('complexityArea');
+    const flowArea = document.getElementById('flowArea');
+    const chatArea = document.getElementById('chatArea');
+    
+    if (cxArea.style.display === 'none') {
+      cxArea.style.display = 'flex';
+      flowArea.style.display = 'none';
+      chatArea.style.display = 'none';
+    } else {
+      cxArea.style.display = 'none';
+      chatArea.style.display = 'flex';
+    }
+  }
+
+  // Update existing toggleFlowMode to also hide complexity mode
+  const originalToggleFlowMode = window.toggleFlowMode;
+  if(originalToggleFlowMode) {
+     window.toggleFlowMode = function() {
+        document.getElementById('complexityArea').style.display = 'none';
+        originalToggleFlowMode();
+     };
+  } else {
+     window.toggleFlowMode = function() {
+        const flowArea = document.getElementById('flowArea');
+        const cxArea = document.getElementById('complexityArea');
+        const chatArea = document.getElementById('chatArea');
+        if (flowArea.style.display === 'none') {
+          flowArea.style.display = 'flex';
+          cxArea.style.display = 'none';
+          chatArea.style.display = 'none';
+        } else {
+          flowArea.style.display = 'none';
+          chatArea.style.display = 'flex';
+        }
+     }
+  }
+
+  async function analyzeComplexity() {
+    const code = document.getElementById('cxCodeInput').value.trim();
+    const lang = document.getElementById('cxLang').value;
+    const btn = document.getElementById('cxAnalyzeBtn');
+    const results = document.getElementById('cxResults');
+
+    if (!code || code.length < 5) {
+      showNotif('⚠ Please paste valid code to analyze.');
+      return;
+    }
+
+    // Set loading state
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Analyzing...';
+    results.innerHTML = `
+      <div class="cx-loading">
+        <div class="cx-spinner"></div>
+        <p>Analyzing time and space complexity...</p>
+      </div>
+    `;
+
+    try {
+      const resp = await fetch(`${BACKEND_URL}/api/complexity/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, language: lang })
+      });
+      const data = await resp.json();
+
+      if (!resp.ok || data.error || !data.success) {
+        throw new Error(data.error || 'Failed to analyze code.');
+      }
+
+      renderComplexityResult(data.analysis);
+    } catch (err) {
+      results.innerHTML = `
+        <div class="cx-result-area">
+          <div class="cx-error-msg">
+            <strong>Analysis Failed</strong><br><br>${escHtml(err.message)}
+          </div>
+        </div>
+      `;
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Analyze Complexity';
+    }
+  }
+
+  function renderComplexityResult(data) {
+    const res = document.getElementById('cxResults');
+    let html = `<div class="cx-result-area">`;
+
+    // Category / Pattern tag
+    if (data.algorithmPattern) {
+      html += `<div style="margin-bottom:-4px"><span style="color:#00e5ff; font-family:var(--font-mono); font-size:12px; font-weight:700;">// PATTERN DETECTED: ${escHtml(data.algorithmPattern)}</span></div>`;
+    }
+
+    // Big O Cards
+    html += `
+      <div class="cx-bigo-row">
+        <div class="cx-bigo-card time">
+          <div class="cx-bigo-label">Time Complexity</div>
+          <div class="cx-bigo-value">${escHtml(data.timeComplexity || 'O(N)')}</div>
+          <div class="cx-bigo-sub">${escHtml(data.timeReason || '')}</div>
+        </div>
+        <div class="cx-bigo-card space">
+          <div class="cx-bigo-label">Space Complexity</div>
+          <div class="cx-bigo-value">${escHtml(data.spaceComplexity || 'O(1)')}</div>
+          <div class="cx-bigo-sub">${escHtml(data.spaceReason || '')}</div>
+        </div>
+      </div>
+    `;
+
+    // Comparison (Brute vs Optimal)
+    if (data.bruteForceComplexity && data.optimalComplexity) {
+      html += `
+        <div class="cx-compare-row">
+          <div class="cx-compare-card brute">
+            <div class="cx-compare-label">Brute Force</div>
+            <div class="cx-compare-val">${escHtml(data.bruteForceComplexity)}</div>
+          </div>
+          <div class="cx-compare-card optimal">
+            <div class="cx-compare-label">Optimal</div>
+            <div class="cx-compare-val">${escHtml(data.optimalComplexity)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Optimization Suggestion
+    if (data.optimizationSuggestion) {
+      html += `
+        <div class="cx-block">
+          <div class="cx-block-title"><div class="cx-dot" style="background:#f59e0b"></div> Optimization Suggestion</div>
+          <p>${escHtml(data.optimizationSuggestion)}</p>
+        </div>
+      `;
+    }
+
+    // Better Approach Code
+    if (data.betterApproach && data.betterApproach.exists && data.betterApproach.code) {
+      html += `
+        <div class="cx-block">
+          <div class="cx-block-title"><div class="cx-dot" style="background:#10b981"></div> Better Approach</div>
+          <p>${escHtml(data.betterApproach.explanation || 'An optimal solution is provided below.')}</p>
+          <div class="cx-code-block">${escHtml(data.betterApproach.code)}</div>
+        </div>
+      `;
+    }
+
+    // Interview Tips
+    if (data.interviewTips && data.interviewTips.length > 0) {
+      html += `
+        <div class="cx-block">
+          <div class="cx-block-title"><div class="cx-dot" style="background:#7c3aed"></div> Interview Tips</div>
+          <ul>
+            ${data.interviewTips.map(t => `<li>${escHtml(t)}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    // Common Mistakes
+    if (data.commonMistakes && data.commonMistakes.length > 0) {
+      html += `
+        <div class="cx-block">
+          <div class="cx-block-title"><div class="cx-dot" style="background:#ef4444"></div> Common Mistakes</div>
+          <ul>
+            ${data.commonMistakes.map(m => `<li>${escHtml(m)}</li>`).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    html += `</div>`;
+    res.innerHTML = html;
+  }
+
+
+  // ── Mobile Sidebar Toggle ──
+  function toggleMobileSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('open');
+  }
+
+
+  // ── Premium AI Loading Indicator ──
+  function showTypingIndicator() {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'msg ai-msg';
+    msgDiv.id = 'typingIndicator';
+    msgDiv.innerHTML = `<div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div>`;
+    const msgArea = document.getElementById('messages');
+    if (msgArea) { msgArea.appendChild(msgDiv); msgArea.scrollTop = msgArea.scrollHeight; }
+  }
+  function hideTypingIndicator() {
+    const el = document.getElementById('typingIndicator');
+    if (el) el.remove();
+  }
+  // ── Stagger-in history items on load ──
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.history-item, .nav-item').forEach((el, i) => {
+      el.style.animationDelay = (i * 0.05) + 's';
+      el.style.animation = 'fadeSlideUp 0.4s both';
+    });
+  });
 
 </script>
 </body>
