@@ -13,16 +13,17 @@ import { uploadFileToRag, listDocuments, deleteDocument } from '../services/ragS
 export const uploadRouter = Router();
 
 // ── Multer: store uploads in memory (no temp files on disk) ───────────────────
+const ALLOWED_EXTS = new Set(['pdf','txt','md','py','js','ts','java','cpp','c','docx']);
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 }, // 20 MB max
   fileFilter: (_req, file, cb) => {
-    const allowed = ['application/pdf', 'text/plain'];
     const ext = file.originalname.split('.').pop().toLowerCase();
-    if (allowed.includes(file.mimetype) || ext === 'pdf' || ext === 'txt') {
+    if (ALLOWED_EXTS.has(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Only PDF and TXT files are allowed.'));
+      cb(new Error(`File type ".${ext}" is not supported. Allowed: ${[...ALLOWED_EXTS].join(', ')}`));
     }
   },
 });

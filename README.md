@@ -1,6 +1,6 @@
 # CodeMind AI 🤖⚡
 
-> A production-ready, multi-agent AI coding assistant with real-time streaming, RAG document search, code execution, and JWT authentication.
+> A premium, production-ready AI coding assistant and Data Structures & Algorithms (DSA) Mentor. Features real-time streaming, RAG document search, complexity analysis, visual dry runs, multi-agent routing, and secure JWT authentication.
 
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green)](https://nodejs.org)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://python.org)
@@ -13,41 +13,43 @@
 
 | Feature | Details |
 |---------|---------|
-| 🤖 **Multi-Agent System** | Debug Agent · Architecture Agent · Security Agent · General Agent |
-| 🔄 **SSE Streaming** | Real-time token streaming with blinking cursor |
-| 📚 **RAG Pipeline** | FAISS vector store · sentence-transformers · PDF/TXT ingestion |
-| ▶️ **Code Execution** | Python (subprocess) · JavaScript (Node vm sandbox) |
-| 🔒 **JWT Auth** | Register/Login · Per-user sessions · bcrypt passwords |
-| 🌙 **Dark/Light Mode** | Persistent theme via localStorage |
-| 📂 **Document Upload** | Drag & drop · pdfplumber extraction · live docs list |
+| ⚡ **DSA Mentor** | Elite coding assistant focused on problem-solving and algorithmic logic |
+| 📊 **Complexity Analyzer** | Automatic Big O Time & Space complexity detection via dedicated backend routing |
+| 🔀 **Dry Run Visualizer** | Step-by-step animated execution flowcharts powered by Mermaid.js |
+| 🤖 **Multi-Agent System** | Dynamic keyword-based routing to Debug, Architecture, Security, or General Agents |
+| 🔄 **SSE Streaming** | Real-time token streaming with a premium UI typing indicator |
+| 📚 **Smart Search (RAG)** | FAISS vector store, sentence-transformers, PDF/TXT ingestion |
+| ▶️ **Code Execution** | Python (subprocess) & JavaScript (Node vm sandbox) execution |
+| 🔒 **JWT Auth** | Register/Login interface, per-user sessions, bcrypt hashed passwords |
+| 🌙 **Dark Mode UI** | Premium SaaS-like product interface, glassmorphism, responsive mobile sidebar |
 
 ---
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────┐     SSE Stream      ┌──────────────────────┐
 │   Browser UI    │ ←────────────────── │  Express Backend     │
 │  (HTML/JS/CSS)  │ ──POST /api/chat──► │  Node.js · Port 3001 │
 └─────────────────┘                     └──────────┬───────────┘
                                                    │ HTTP
                                          ┌─────────▼───────────┐
-                                         │   RAG Microservice   │
-                                         │  FastAPI · Port 8000 │
-                                         │  FAISS · embeddings  │
+                                         │   RAG Microservice  │
+                                         │  FastAPI · Port 8000│
+                                         │  FAISS · embeddings │
                                          └─────────────────────┘
 ```
 
 ### Multi-Agent Routing
 
-User queries are **automatically classified** by keyword scoring and routed to the best agent:
+User queries are **automatically classified** by keyword scoring in the Express backend and routed to specialized agents:
 
 | Agent | Triggers | System Prompt Style |
 |-------|----------|---------------------|
 | 🐛 Debug | `error`, `bug`, `crash`, `traceback` | Root cause → Fix → Prevention |
 | 📐 Architecture | `design`, `scale`, `microservice`, `pattern` | Trade-off analysis + diagrams |
 | 🔒 Security | `vulnerability`, `injection`, `auth`, `xss` | OWASP-focused threat modeling |
-| ⚡ General | catch-all | Elite coding assistant |
+| ⚡ General / DSA | catch-all | Elite algorithmic mentor |
 
 ---
 
@@ -70,9 +72,9 @@ cd ai-chatbot
 ```bash
 cd backend
 cp ../.env.example .env
-# Edit .env and add your GROQ_API_KEY
+# Edit .env and add your GROQ_API_KEY and JWT_SECRET
 npm install
-npm start
+npm run dev
 # → http://localhost:3001
 ```
 
@@ -87,15 +89,16 @@ uvicorn main:app --reload --port 8000
 
 ### 4. Open the App
 
-Visit **[http://localhost:3001](http://localhost:3001)**
+The Express backend serves the static HTML.
+Visit **[http://localhost:3001](http://localhost:3001)** or open the `Aicodingchatbot .HTML` file directly using a local static server.
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 ai-chatbot/
-├── Aicodingchatbot .HTML       # Single-file frontend
+├── Aicodingchatbot .HTML       # Main Application Dashboard
 ├── login.html                  # Auth page
 ├── .env.example                # Environment variables template
 ├── README.md
@@ -108,7 +111,9 @@ ai-chatbot/
 │   │   │   ├── auth.js         # POST /api/auth/register, /login, /me
 │   │   │   ├── chat.js         # POST /api/chat, /api/chat/stream
 │   │   │   ├── upload.js       # POST /api/upload, GET/DELETE /api/documents
-│   │   │   └── execute.js      # POST /api/execute (JS + Python sandbox)
+│   │   │   ├── execute.js      # POST /api/execute (JS + Python sandbox)
+│   │   │   ├── flow.js         # POST /api/flow (Mermaid.js execution paths)
+│   │   │   └── complexity.js   # POST /api/complexity (Big O analysis)
 │   │   ├── services/
 │   │   │   ├── groqService.js  # Groq SDK wrapper (chat + streaming)
 │   │   │   ├── ragService.js   # RAG proxy (forwards to FastAPI)
@@ -138,7 +143,7 @@ ai-chatbot/
 4. Build command: `npm install`
 5. Start command: `npm start`
 6. Add Environment Variables:
-   ```
+   ```env
    GROQ_API_KEY=gsk_...
    JWT_SECRET=your-super-secret-key-here
    NODE_ENV=production
@@ -172,6 +177,8 @@ Since the frontend is served by Express, deploy both together **or** extract the
 # Copy HTML files to a dist/ folder
 cp "Aicodingchatbot .HTML" dist/index.html
 cp login.html dist/login.html
+cp logo.png dist/logo.png
+cp favicon.png dist/favicon.png
 # Change BACKEND_URL in HTML to your Render URL before deploying
 netlify deploy --prod --dir dist
 ```
@@ -199,18 +206,21 @@ vercel --prod
 
 ## 🔑 API Reference
 
+### Core Services
+| Method | Endpoint | Body | Description |
+|--------|----------|------|-------------|
+| POST | `/api/chat` | `{ userMessage, history, ragEnabled }` | Single response |
+| POST | `/api/chat/stream` | `{ userMessage, history, ragEnabled }` | SSE streaming |
+| POST | `/api/flow` | `{ code, language }` | Generate Mermaid execution flow |
+| POST | `/api/complexity` | `{ code, language }` | Calculate Time/Space complexity |
+| POST | `/api/execute` | `{ code, language }` | Run Python or JavaScript |
+
 ### Auth
 | Method | Endpoint | Body | Description |
 |--------|----------|------|-------------|
 | POST | `/api/auth/register` | `{ email, password, name }` | Create account |
 | POST | `/api/auth/login` | `{ email, password }` | Login, get JWT |
 | GET | `/api/auth/me` | — (Bearer token) | Get current user |
-
-### Chat
-| Method | Endpoint | Body | Description |
-|--------|----------|------|-------------|
-| POST | `/api/chat` | `{ userMessage, history, ragEnabled }` | Single response |
-| POST | `/api/chat/stream` | `{ userMessage, history, ragEnabled }` | SSE streaming |
 
 ### Documents
 | Method | Endpoint | Description |
@@ -219,21 +229,16 @@ vercel --prod
 | GET | `/api/documents` | List indexed documents |
 | DELETE | `/api/documents/:source` | Remove from vector store |
 
-### Code Execution
-| Method | Endpoint | Body | Description |
-|--------|----------|------|-------------|
-| POST | `/api/execute` | `{ code, language }` | Run Python or JavaScript |
-
 ---
 
 ## 🛡️ Security Notes
 
-- API key is **never** exposed to the browser — all Groq calls go through the backend
-- Passwords are hashed with **bcrypt** (cost factor 12)
-- JWT tokens expire after **7 days**
-- JS execution runs in an isolated **Node.js `vm` sandbox** (no require, no fs, no network)
-- Python execution has a **5-second timeout** via SIGKILL
-- Rate limiting: **60 requests/minute** per IP on all `/api` routes
+- API key is **never** exposed to the browser — all Groq calls go through the backend.
+- Passwords are hashed with **bcrypt** (cost factor 12).
+- JWT tokens expire after **7 days**.
+- JS execution runs in an isolated **Node.js `vm` sandbox** (no require, no fs, no network).
+- Python execution has a **5-second timeout** via SIGKILL.
+- Rate limiting: **60 requests/minute** per IP on all `/api` routes.
 
 > ⚠️ **Production upgrade**: Replace the in-memory user store in `routes/auth.js` with MongoDB/PostgreSQL/Supabase before going live.
 

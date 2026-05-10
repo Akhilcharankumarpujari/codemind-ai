@@ -217,10 +217,11 @@
   .input-wrap {
     background: var(--surface2); border: 1px solid var(--border);
     border-radius: 14px; transition: border-color 0.2s;
-    overflow: hidden;
+    overflow: visible;
+    position: relative;
   }
   .input-wrap:focus-within { border-color: rgba(0,229,255,0.35); }
-  .input-row { display: flex; align-items: flex-end; padding: 10px 14px; gap: 10px; }
+  .input-row { display: flex; align-items: flex-end; padding: 10px 14px; gap: 10px; overflow: hidden; border-radius: 14px 14px 0 0; }
   #userInput {
     flex: 1; background: none; border: none; outline: none;
     color: var(--text); font-family: var(--font-mono); font-size: 13.5px;
@@ -236,7 +237,7 @@
   }
   .send-btn:hover { opacity: 0.85; transform: scale(1.05); }
   .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-  .input-hints { padding: 0 14px 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .input-hints { padding: 0 14px 10px; display: flex; gap: 8px; flex-wrap: wrap; border-radius: 0 0 14px 14px; overflow: hidden; }
   .hint { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 4px; }
   .hint kbd {
     background: var(--border); padding: 1px 5px; border-radius: 4px;
@@ -417,6 +418,109 @@
     font-size: 13px; cursor: pointer; transition: all 0.2s;
   }
   .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+  /* ─── + UPLOAD BUTTON IN INPUT BOX ─── */
+  .input-plus-btn {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    background: transparent; border: 1.5px solid var(--border);
+    color: var(--muted); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 300; line-height: 1;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+  }
+  .input-plus-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,0.08);
+    box-shadow: 0 0 0 4px rgba(0,229,255,0.08), 0 0 12px rgba(0,229,255,0.15);
+    transform: scale(1.1) rotate(90deg);
+  }
+  .input-plus-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(0,229,255,0.1);
+    transform: scale(1.05) rotate(45deg);
+  }
+
+  /* popup menu — uses position:fixed so it's never clipped by parent overflow */
+  .upload-popup {
+    position: fixed;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 8px;
+    min-width: 230px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
+    z-index: 9999;
+    transform-origin: bottom left;
+  }
+  .upload-popup.hidden { display: none; }
+  @keyframes popupIn {
+    from { opacity: 0; transform: scale(0.88) translateY(6px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  .upload-popup:not(.hidden) { animation: popupIn 0.18s cubic-bezier(0.34, 1.56, 0.64, 1); }
+  .popup-label {
+    font-size: 10px; font-weight: 700; color: var(--muted);
+    letter-spacing: 1.2px; text-transform: uppercase;
+    padding: 4px 10px 8px; display: block;
+  }
+  .popup-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 9px;
+    cursor: pointer; transition: all 0.15s;
+    font-size: 13px; color: var(--text);
+    border: none; background: none; width: 100%; text-align: left;
+    font-family: var(--font-ui);
+  }
+  .popup-item:hover {
+    background: rgba(0,229,255,0.06);
+    color: var(--accent);
+  }
+  .popup-item .pi-icon {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
+  .popup-item:hover .pi-icon { border-color: rgba(0,229,255,0.3); }
+  .popup-item .pi-label { font-size: 12.5px; font-weight: 600; }
+  .popup-item .pi-sub { font-size: 10.5px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* file preview chip */
+  .file-preview-bar {
+    padding: 8px 14px 0;
+    display: flex; align-items: center; gap: 8px;
+    flex-wrap: wrap;
+  }
+  .file-chip {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 5px 10px 5px 8px;
+    background: rgba(0,229,255,0.06);
+    border: 1px solid rgba(0,229,255,0.2);
+    border-radius: 8px;
+    font-size: 12px; color: var(--text);
+    font-family: var(--font-mono);
+    animation: chipIn 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    max-width: 280px;
+  }
+  @keyframes chipIn {
+    from { opacity:0; transform: scale(0.8) translateY(4px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
+  }
+  .file-chip-icon { font-size: 14px; }
+  .file-chip-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--accent); }
+  .file-chip-size { font-size: 10px; color: var(--muted); }
+  .file-chip-remove {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 13px; padding: 0; line-height: 1;
+    transition: color 0.15s; flex-shrink: 0;
+  }
+  .file-chip-remove:hover { color: #f87171; }
+
+  /* popup wrapper needs relative for positioning */
+  .plus-btn-wrap { position: relative; flex-shrink: 0; }
+
   /* ─── DOCS LIST IN SIDEBAR ─── */
   .upload-btn {
     margin-top: 8px; width: 100%; padding: 9px 14px;
@@ -1061,6 +1165,8 @@
     }
   }
 
+
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
 <script>
@@ -1153,10 +1259,12 @@
       <button class="new-chat-btn" onclick="newChat()">
         <span>✦</span> New conversation
       </button>
-      <button class="upload-btn" onclick="toggleFlowMode()" id="flowVisBtn" style="border-color:var(--accent2); color:var(--accent2); background:rgba(124,58,237,0.06); margin-top:8px">
+
+      <div class="sidebar-section" style="margin-top:16px; padding:0; padding-bottom:4px;">⚡ SMART TOOLS</div>
+      <button class="upload-btn" onclick="toggleFlowMode()" id="flowVisBtn" style="border-color:var(--accent2); color:var(--accent2); background:rgba(124,58,237,0.06); margin-top:4px">
         Flow Visualizer
       </button>
-      <button class="upload-btn" onclick="toggleComplexityMode()" id="cxBtn" style="border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,0.06); margin-top:8px">
+      <button class="upload-btn" onclick="toggleComplexityMode()" id="cxBtn" style="border-color:#f59e0b; color:#f59e0b; background:rgba(245,158,11,0.06); margin-top:6px">
         Complexity Analyzer
       </button>
     </div>
@@ -1169,7 +1277,7 @@
       <div class="model-badge" style="flex-direction:column;gap:6px;align-items:flex-start">
         <div style="display:flex;align-items:center;gap:8px;width:100%">
           <span class="status-dot"></span>
-          <span id="activemodelLabel">llama-3.3-70b &middot; AI</span>
+          <span id="activemodelLabel">AI Mentor Active</span>
         </div>
         <div id="userBadge" style="display:none;align-items:center;gap:8px;width:100%;padding-top:6px;border-top:1px solid var(--border)">
           <div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#000;flex-shrink:0" id="userAvatar">?</div>
@@ -1186,10 +1294,10 @@
   <main class="chat-area" id="chatArea">
     <div class="chat-topbar">
       <button class="hamburger-btn" id="mobileMenuBtn" onclick="toggleMobileSidebar()" aria-label="Open menu">☰</button>
-      <div class="chat-title">Code<span>Mind</span> AI</div>
+      <div class="chat-title">DSA Practice <span>Dashboard</span></div>
       <div class="topbar-pills">
         <span class="agent-badge" id="agentBadge" style="display:none"></span>
-        <button class="pill active" id="ragPill" onclick="toggleRag()">RAG</button>
+        <button class="pill active" id="ragPill" onclick="toggleRag()">Smart Search</button>
         <button class="pill" id="themePill" onclick="toggleTheme()" title="Toggle dark/light mode">&#9790;</button>
         <button class="pill" id="loginPill" onclick="window.location.href='/login'" style="display:none">Sign In</button>
         <button class="pill" id="logoutPill" onclick="logout()" style="display:none" title="Sign out">&#x2715; Sign out</button>
@@ -1203,8 +1311,8 @@
           <img src="/logo.png" alt="CodeMind AI Logo">
         </div>
       </div>
-        <h2>Hello, <span>Coder</span>.</h2>
-        <p>I'm your AI-powered Coding Assistant. Ask me about Data Structures, Algorithms, problem solving, dry runs, and coding interview preparation.</p>
+        <h2>Your Personal <span>DSA Mentor</span></h2>
+        <p>Master Data Structures and Algorithms with AI-powered problem solving, interactive dry runs, and coding interview preparation.</p>
         
       </div>
     </div>
@@ -1212,10 +1320,25 @@
     <div class="input-area">
       <div class="input-wrap">
         <div class="input-row">
-          <textarea id="userInput" rows="1" placeholder="Ask about code, debugging, algorithms, tools…"
+          <!-- Hidden file input -->
+          <input type="file" id="inputFileHidden" style="display:none"
+            accept=".py,.java,.cpp,.c,.js,.ts,.pdf,.txt,.md,.docx"
+            onchange="handleInputFileSelect(event)">
+
+          <!-- + Upload button -->
+          <div class="plus-btn-wrap">
+            <button class="input-plus-btn" id="inputPlusBtn"
+              onclick="document.getElementById('inputFileHidden').click()"
+              title="Attach a file" aria-label="Attach a file">+</button>
+          </div>
+
+          <textarea id="userInput" rows="1" placeholder="Ask DSA questions, dry runs, debugging, complexity analysis…"
             onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
           <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
         </div>
+
+        <!-- File preview chip bar (shown when file attached) -->
+        <div class="file-preview-bar" id="filePreviewBar" style="display:none"></div>
         <div class="input-hints">
           <span class="hint"><kbd>Enter</kbd> send</span>
           <span class="hint"><kbd>Shift+Enter</kbd> new line</span>
@@ -1440,8 +1563,9 @@ def two_sum(nums, target):
 
   async function uploadFile(file) {
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!['pdf', 'txt'].includes(ext)) {
-      showNotif('⚠ Only PDF and TXT files are supported.');
+    const allowed = ['pdf','txt','md','py','js','ts','java','cpp','c','docx'];
+    if (!allowed.includes(ext)) {
+      showNotif('⚠ File type not supported. Use: ' + allowed.join(', '));
       return;
     }
     // Show progress
@@ -1765,21 +1889,50 @@ When answering:
     if (isTyping) return;
     const input = document.getElementById('userInput');
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !attachedFile) return;
+
+    // ── Build final message with optional file context ──
+    let finalMessage = text;
+    const tags = [];
+    if (ragEnabled) tags.push({ cls: 'tag-rag', text: '\ud83d\uddc2 RAG' });
+
+    if (attachedFile) {
+      tags.push({ cls: 'tag-rag', text: '\ud83d\udcce ' + attachedFile.file.name });
+      if (attachedFile.text) {
+        const ext = attachedFile.file.name.split('.').pop().toLowerCase();
+        const langMap = { py:'python', js:'javascript', ts:'typescript', java:'java', cpp:'cpp', c:'c', md:'markdown', txt:'text' };
+        const lang = langMap[ext] || ext;
+        finalMessage = (text ? text + '\n\n' : '')
+          + '\ud83d\udcce **File: `' + attachedFile.file.name + '`**\n\nPlease analyze the following ' + lang + ' code/content:\n\n'
+          + '```' + lang + '\n' + attachedFile.text.slice(0, 8000) + '\n```';
+      } else {
+        finalMessage = (text ? text + '\n\n' : '') + '\ud83d\udcce File attached: `' + attachedFile.file.name + '` (' + (attachedFile.file.size/1024).toFixed(1) + ' KB). Please help analyze or review it.';
+      }
+      // Auto-upload RAG-eligible files in background (PDF, TXT, MD)
+      const ragExts = new Set(['pdf','txt','md']);
+      const fext = attachedFile.file.name.split('.').pop().toLowerCase();
+      if (ragExts.has(fext)) {
+        const fd = new FormData();
+        fd.append('file', attachedFile.file);
+        fetch(BACKEND_URL + '/api/upload', { method: 'POST', body: fd })
+          .then(function(r){ return r.json(); })
+          .then(function(d){ if (d.success) { showNotif('\u2705 "' + d.source + '" indexed into RAG!'); loadDocuments(); } })
+          .catch(function(){});
+      }
+      removeAttachedFile();
+    }
 
     input.value = ''; input.style.height = 'auto';
     document.getElementById('sendBtn').disabled = true;
     isTyping = true;
 
     const histItems = document.getElementById('historyList').querySelectorAll('.history-item');
-    if (histItems[0]) histItems[0].innerHTML = `<span class="dot"></span>${text.slice(0, 28)}${text.length > 28 ? '\u2026' : ''}`;
+    const previewText = text || finalMessage;
+    if (histItems[0]) histItems[0].innerHTML = '<span class="dot"></span>' + previewText.slice(0, 28) + (previewText.length > 28 ? '\u2026' : '');
 
-    const tags = [];
-    if (ragEnabled) tags.push({ cls: 'tag-rag', text: '\ud83d\uddc2 RAG' });
-
-    appendMsg('user', text);
-    conversationHistory.push({ role: 'user', content: text });
-    searchHistoryList.unshift(text.slice(0, 40));
+    appendMsg('user', finalMessage);
+    conversationHistory.push({ role: 'user', content: finalMessage });
+    searchHistoryList.unshift(finalMessage.slice(0, 40));
 
     const welcome = document.getElementById('welcome');
     if (welcome) welcome.remove();
@@ -1787,24 +1940,19 @@ When answering:
     const aiDiv = document.createElement('div');
     aiDiv.className = 'msg ai';
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const tagsHtml = tags.map(t => `<span class="msg-tag ${t.cls}">${t.text}</span>`).join('');
+    const tagsHtml = tags.map(function(t){ return '<span class="msg-tag ' + t.cls + '">' + t.text + '</span>'; }).join('');
     const bubbleId = 'bubble-' + Date.now();
-    aiDiv.innerHTML = `
-      <div class="msg-avatar">\u26a1</div>
-      <div class="msg-body">
-        <div class="msg-meta">CodeMind <span style="opacity:.4">\u00b7</span> ${time} ${tagsHtml}</div>
-        <div class="msg-bubble" id="${bubbleId}"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>
-      </div>`;
+    aiDiv.innerHTML = '<div class="msg-avatar">\u26a1</div><div class="msg-body"><div class="msg-meta">CodeMind <span style="opacity:.4">\u00b7</span> ' + time + ' ' + tagsHtml + '</div><div class="msg-bubble" id="' + bubbleId + '"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>';
     msgs.appendChild(aiDiv);
     msgs.scrollTop = msgs.scrollHeight;
     const bubble = document.getElementById(bubbleId);
 
     try {
-      const resp = await fetch(`${BACKEND_URL}/api/chat/stream`, {
+      const resp = await fetch(BACKEND_URL + '/api/chat/stream', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          userMessage: text,
+          userMessage: finalMessage,
           history: conversationHistory.slice(0, -1),
           model: getModel(),
           systemPrompt: buildSystemPrompt(),
@@ -1815,8 +1963,8 @@ When answering:
       });
 
       if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        bubble.innerHTML = formatContent(`⚠ **Error:** ${err.error || 'Backend error'}`);
+        const err = await resp.json().catch(function(){ return {}; });
+        bubble.innerHTML = formatContent('\u26a0 **Error:** ' + (err.error || 'Backend error'));
       } else {
         const reader = resp.body.getReader();
         const decoder = new TextDecoder();
@@ -1835,7 +1983,6 @@ When answering:
             try {
               const evt = JSON.parse(line.slice(6));
               if (evt.type === 'meta') {
-                // Update agent badge from server-side routing decision
                 if (evt.agent) updateAgentBadge(evt.agent);
               } else if (evt.type === 'text') {
                 fullContent += evt.content;
@@ -2284,6 +2431,111 @@ When answering:
   }
 
 
+  // ─────────────────────────────────────────────────────────
+  // ── + UPLOAD BUTTON LOGIC ──
+  // ─────────────────────────────────────────────────────────
+
+  let attachedFile = null;       // { file: File, text: string|null }
+  let _popupOpen = false;
+
+  /** Toggle the popup menu open/closed — uses fixed positioning to escape all overflow clipping */
+  function toggleUploadPopup(e) {
+    e.stopPropagation();
+    const popup = document.getElementById('uploadPopup');
+    const btn   = document.getElementById('inputPlusBtn');
+    _popupOpen = !_popupOpen;
+    btn.classList.toggle('active', _popupOpen);
+
+    if (_popupOpen) {
+      popup.classList.remove('hidden');
+      // Position the popup above the button using fixed coordinates
+      const rect = btn.getBoundingClientRect();
+      popup.style.left = rect.left + 'px';
+      popup.style.top  = (rect.top - popup.offsetHeight - 10) + 'px';
+      // After paint, recalculate (offsetHeight now accurate)
+      requestAnimationFrame(function() {
+        const h = popup.offsetHeight;
+        popup.style.top = (rect.top - h - 10) + 'px';
+      });
+    } else {
+      popup.classList.add('hidden');
+    }
+  }
+
+  /** Clicking anywhere outside closes the popup */
+  document.addEventListener('click', (e) => {
+    if (!_popupOpen) return;
+    const wrap = document.getElementById('uploadPopup');
+    const btn  = document.getElementById('inputPlusBtn');
+    if (wrap && !wrap.contains(e.target) && e.target !== btn) {
+      wrap.classList.add('hidden');
+      btn.classList.remove('active');
+      _popupOpen = false;
+    }
+  });
+
+  /** Set the accept attribute then open the hidden file picker */
+  function triggerFilePick(accept) {
+    const inp = document.getElementById('inputFileHidden');
+    inp.accept = accept || '.py,.java,.cpp,.c,.js,.ts,.pdf,.txt,.md,.docx';
+    inp.value = '';           // allow re-selecting same file
+    inp.click();
+    // close popup
+    document.getElementById('uploadPopup').classList.add('hidden');
+    document.getElementById('inputPlusBtn').classList.remove('active');
+    _popupOpen = false;
+  }
+
+  /** Called when the hidden input changes (user selected a file) */
+  function handleInputFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const MAX = 2 * 1024 * 1024; // 2 MB read limit for text files
+    const ext  = file.name.split('.').pop().toLowerCase();
+    const textExts = new Set(['py','js','ts','java','cpp','c','txt','md']);
+
+    attachedFile = { file, text: null };
+    renderFileChip(file);
+
+    if (textExts.has(ext) && file.size <= MAX) {
+      const reader = new FileReader();
+      reader.onload = (ev) => { attachedFile.text = ev.target.result; };
+      reader.readAsText(file);
+    }
+  }
+
+  /** Render the file chip below the input */
+  function renderFileChip(file) {
+    const bar  = document.getElementById('filePreviewBar');
+    const icon = getFileIcon(file.name);
+    const kb   = (file.size / 1024).toFixed(1);
+    bar.innerHTML = `
+      <div class="file-chip" id="attachedChip">
+        <span class="file-chip-icon">${icon}</span>
+        <span class="file-chip-name">${escHtml(file.name)}</span>
+        <span class="file-chip-size">${kb} KB</span>
+        <button class="file-chip-remove" onclick="removeAttachedFile()" title="Remove">✕</button>
+      </div>`;
+    bar.style.display = 'flex';
+  }
+
+  /** Remove the attached file */
+  function removeAttachedFile() {
+    attachedFile = null;
+    const bar = document.getElementById('filePreviewBar');
+    bar.innerHTML = '';
+    bar.style.display = 'none';
+    document.getElementById('inputFileHidden').value = '';
+  }
+
+  /** Return a relevant emoji icon for a file extension */
+  function getFileIcon(name) {
+    const ext = name.split('.').pop().toLowerCase();
+    const map = { pdf:'📄', py:'🐍', js:'🟨', ts:'🔷', java:'☕', cpp:'⚙', c:'⚙', txt:'📝', md:'📝', docx:'📋' };
+    return map[ext] || '📁';
+  }
+
+  // ─────────────────────────────────────────────────────────
   // ── Mobile Sidebar Toggle ──
   function toggleMobileSidebar() {
     const sidebar = document.querySelector('.sidebar');

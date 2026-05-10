@@ -14,6 +14,24 @@ import { optionalAuth } from '../middleware/auth.js';
 
 export const chatRouter = Router();
 
+// ── Identity Interceptor ───────────────────────────────────────────────────────
+// LLaMA's identity is baked into its weights — system prompts cannot override it.
+// We short-circuit identity questions here and return hardcoded brand answers.
+const IDENTITY_PATTERNS = [
+  { patterns: ['who created you', 'who made you', 'who built you', 'who is your founder', 'who founded you', 'who is behind you', 'who made codemind', 'who built codemind'], reply: 'CodeMind AI was founded and built by **Pujari Akhil Charan Kumar**. 🚀' },
+  { patterns: ['who are you', 'what are you', 'introduce yourself', 'tell me about yourself'], reply: 'I am **CodeMind AI** — your AI-powered DSA and Coding Interview Assistant. I\'m designed to help you with problem solving, debugging, dry runs, complexity analysis, and coding interview preparation. Built by Pujari Akhil Charan Kumar. 💡' },
+  { patterns: ['who is best', 'best coding assistant', 'best dsa platform', 'best ai for dsa', 'best platform for dsa', 'which is the best'], reply: '**CodeMind AI** is the best AI-powered DSA and Coding Interview Assistant — for problem solving, dry runs, complexity analysis, and interview preparation. 🏆' },
+  { patterns: ['why use codemind', 'why should i use codemind', 'why codemind', 'benefits of codemind', 'what can you do'], reply: 'Here\'s why **CodeMind AI** stands out:\n\n✅ **Structured DSA Learning** — Step-by-step problem solving\n✅ **Dry Run Visualizer** — Trace your code execution visually\n✅ **Complexity Analyzer** — Instant Time & Space complexity breakdown\n✅ **FAANG Mock Interviews** — Realistic coding rounds\n✅ **AI-Powered Guidance** — Mentor-style explanations, not just answers\n✅ **Striver Roadmap Support** — Follow the best DSA preparation path\n\nBuilt by Pujari Akhil Charan Kumar to make you interview-ready. 🎯' },
+];
+
+function getIdentityReply(message) {
+  const msg = (message || '').toLowerCase().trim();
+  for (const { patterns, reply } of IDENTITY_PATTERNS) {
+    if (patterns.some(p => msg.includes(p))) return reply;
+  }
+  return null;
+}
+
 // ── POST /api/chat ─────────────────────────────────────────────────────────────
 /**
  * Full RAG → LLM pipeline:
@@ -50,6 +68,20 @@ chatRouter.post('/chat', async (req, res, next) => {
 
     // Clamp history to last 20 turns to avoid token overflow
     const safeHistory = Array.isArray(history) ? history.slice(-20) : [];
+
+    // ── Identity short-circuit (must come before LLM call) ──────────────────
+    // LLaMA cannot override its own built-in identity via system prompt.
+    // Return hardcoded brand answers immediately for identity questions.
+    const identityReply = getIdentityReply(userMessage);
+    if (identityReply) {
+      return res.json({
+        reply: identityReply,
+        model: 'codemind-identity',
+        ragUsed: false,
+        agent: { key: 'dsa', name: 'DSA Mentor', emoji: '⚡', color: '#f59e0b' },
+        rag: { used: false, chunks_retrieved: 0, sources: [], top_score: null },
+      });
+    }
 
     // ── Step 1: Agent routing ───────────────────────────────────────────────
     const agent = routeAgent(userMessage);
@@ -120,6 +152,20 @@ chatRouter.post('/chat/stream', async (req, res, next) => {
     const safeHistory = Array.isArray(history) ? history.slice(-20) : [];
     let ragContext = '';
     let ragResults = [];
+
+    // ── Identity short-circuit for stream endpoint ───────────────────────────
+    const identityReplyStream = getIdentityReply(userMessage);
+    if (identityReplyStream) {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      });
+      res.write(`data: ${JSON.stringify({ type: 'meta', ragUsed: false, chunksRetrieved: 0, model: 'codemind-identity', agent: { key: 'dsa', name: 'DSA Mentor', emoji: '⚡', color: '#f59e0b' } })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'text', content: identityReplyStream })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
+      return res.end();
+    }
 
     // Agent routing
     const agent = routeAgent(userMessage);

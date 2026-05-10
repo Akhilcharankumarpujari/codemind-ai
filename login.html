@@ -165,7 +165,7 @@
 
 <div class="card">
   <div class="logo">
-    <div class="logo-icon">⚡</div>
+    <div class="logo-icon" style="background: none; padding: 0;"><img src="./logo.png" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" alt="Logo"></div>
     <div class="logo-text">Code<span>Mind</span> AI</div>
   </div>
   <div class="tagline">Multi-Agent · RAG · Code Execution · Streaming</div>
@@ -219,7 +219,7 @@
     fetch(`${BACKEND_URL}/api/auth/me`, {
       headers: { Authorization: `Bearer ${existing}` }
     }).then(r => {
-      if (r.ok) window.location.href = '/';
+      if (r.ok) window.location.href = '/Aicodingchatbot .HTML';
     }).catch(() => {});
   }
 
@@ -283,7 +283,7 @@
       localStorage.setItem('cm_user', JSON.stringify(data.user));
 
       showSuccess(currentTab === 'login' ? 'Welcome back! Redirecting...' : 'Account created! Redirecting...');
-      setTimeout(() => { window.location.href = '/'; }, 800);
+      setTimeout(() => { window.location.href = '/Aicodingchatbot .HTML'; }, 800);
 
     } catch (err) {
       showError('Cannot reach server. Make sure the backend is running on port 3001.');
@@ -295,7 +295,7 @@
   function continueAsGuest() {
     localStorage.removeItem('cm_token');
     localStorage.setItem('cm_user', JSON.stringify({ id: 'guest', email: '', name: 'Guest' }));
-    window.location.href = '/';
+    window.location.href = '/Aicodingchatbot .HTML';
   }
 </script>
 </body>
