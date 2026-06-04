@@ -10,13 +10,13 @@ export const flowRouter = express.Router();
  */
 flowRouter.post('/flow/generate', async (req, res) => {
   try {
-    const { code, isRetry } = req.body;
+    const { code, isRetry, customInput } = req.body;
 
     if (!code || typeof code !== 'string') {
       return res.status(400).json({ error: 'Code string is required.' });
     }
 
-    const flowData = await generateFlow(code, isRetry);
+    const flowData = await generateFlow(code, isRetry, customInput);
 
     res.json({
       mermaid: flowData.mermaid,
@@ -24,6 +24,8 @@ flowRouter.post('/flow/generate', async (req, res) => {
     });
   } catch (error) {
     console.error('[Flow Generate Error]', error.message);
-    res.status(500).json({ error: error.message || 'Failed to generate flow' });
+    // Explicitly return 400 for validation errors thrown from groqService
+    const statusCode = error.message.includes('Syntax Error') || error.message.includes('Invalid input') ? 400 : 500;
+    res.status(statusCode).json({ error: error.message || 'Failed to generate flow' });
   }
 });

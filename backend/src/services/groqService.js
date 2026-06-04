@@ -98,6 +98,13 @@ ${ragContext}
     { role: 'user', content: userMessage },
   ];
 
+  if (customInput) {
+    systemPrompt += `\n\nCRITICAL: The user provided custom inputs for the dry run: "${customInput}".
+First, carefully check if this input matches the syntax and parameter requirements of the provided code.
+If the input DOES NOT MATCH (e.g. invalid format, wrong types, missing args), you MUST return a json object with a single key 'error' explaining the mismatch in 1 short sentence.
+If it DOES MATCH, perform the normal dry run execution trace using these custom inputs.`;
+  }
+
   const completion = await groq.chat.completions.create({
     model: safeModel,
     messages,
@@ -191,31 +198,42 @@ ${ragContext}
  * @param {boolean} isRetry - Whether this is a retry attempt
  * @returns {Promise<{mermaid: string, steps: string[]}>}
  */
-export async function generateFlow(code, isRetry = false) {
+export async function generateFlow(code, isRetry = false, customInput = "") {
   let systemPrompt = `Return ONLY a valid Mermaid flowchart.
-Your task is to analyze the following code snippet and return a JSON object with a Mermaid flowchart and an execution path array.
+Your task is to analyze the following code snippet and return a json object with a Mermaid flowchart and a step-by-step dry run execution trace array.
 
 Rules for "mermaid" string:
 1. Start EXACTLY with: graph TD
 2. Each statement must be on a NEW LINE
-3. Use ONLY: A[Start], B{Condition}, C[Process], -->
-4. Do NOT include: explanations, markdown, \`\`\` blocks, or special characters.
+3. Use ONLY: A["Start"], B{"Condition"}, C["Process"], -->
+4. Each node label must be a single, complete string wrapped in a single pair of double quotes (e.g. A["nums1[k] = nums1[i], k--, i--"]). Do NOT use multiple sets of double quotes or leave text unquoted inside a single node.
+5. Do NOT include: explanations, markdown, \`\`\` blocks, or special characters outside the double quotes.
 
 Requirements for "steps" array:
-An array of strings representing the exact order of node IDs executed.
+An array of objects representing the step-by-step execution path and dry run variables.
+Each object must contain:
+1. "nodeId": The string ID of the node currently executing (e.g. "A").
+2. "explanation": A short 1-sentence description of what is happening in this step (e.g., "Compare nums1[i] (5) and nums2[j] (6).").
+3. "variables": An object of key-value pairs representing the current state/value of all active variables in this step (e.g., {"i": 2, "j": 2, "k": 5, "nums1": "[1,3,5,0,0,0]"}).
 
 Format:
 {
-  "mermaid": "graph TD\\nA[Start] --> B{Condition}\\n...",
-  "steps": ["A", "B", "..."]
+  "mermaid": "graph TD\\nA[\"Start\"] --> B{\"Condition\"}\\n...",
+  "steps": [
+    {
+      "nodeId": "A",
+      "explanation": "Initialize i, j, k and arrays",
+      "variables": {"i": 2, "j": 2, "k": 5, "nums1": "[1,3,5,0,0,0]"}
+    }
+  ]
 }
 
-Return strictly JSON and nothing else.`;
+Return strictly json and nothing else.`;
 
   if (isRetry) {
-    systemPrompt = `ONLY return valid Mermaid. No text. No markdown. No explanations.
+    systemPrompt = `ONLY return a valid json object containing Mermaid. No text. No markdown. No explanations.
 Output must start with 'graph TD'.
-Format: {"mermaid": "graph TD\\nA[Start] --> B[Processing]", "steps": ["A", "B"]}`;
+Format: {"mermaid": "graph TD\\nA[\\"Start\\"] --> B[\\"Processing\\"]", "steps": [{"nodeId": "A", "explanation": "Start processing", "variables": {}}]}`;
   }
 
   const completion = await groq.chat.completions.create({
@@ -229,8 +247,13 @@ Format: {"mermaid": "graph TD\\nA[Start] --> B[Processing]", "steps": ["A", "B"]
     response_format: { type: 'json_object' }
   });
 
-  const reply = completion.choices?.[0]?.message?.content;
+  let reply = completion.choices?.[0]?.message?.content;
   if (!reply) throw new Error('Groq returned an empty response.');
+
+  const jsonMatch = reply.match(/\{[\s\S]+\}/);
+  if (jsonMatch) {
+    reply = jsonMatch[0];
+  }
 
   try {
     const data = JSON.parse(reply);

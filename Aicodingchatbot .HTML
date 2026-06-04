@@ -618,7 +618,53 @@
   .flow-btn:disabled { opacity: 0.5; cursor: not-allowed; }
   
   .mermaid-container {
-    flex: 1; padding: 20px; overflow: auto; display: flex; align-items: center; justify-content: center;
+    flex: 1; padding: 20px; overflow: hidden; display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  .mermaid-container svg {
+    max-width: none !important;
+    transform-origin: center center;
+    cursor: grab;
+    user-select: none;
+  }
+  .mermaid-container svg:active {
+    cursor: grabbing;
+  }
+  .zoom-controls-overlay {
+    position: absolute;
+    top: 75px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 10;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  }
+  .zoom-overlay-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s, color 0.2s, transform 0.1s;
+  }
+  .zoom-overlay-btn:hover {
+    background: var(--surface-hover);
+    color: var(--accent3);
+  }
+  .zoom-overlay-btn:active {
+    transform: scale(0.95);
   }
   
   /* Mermaid Custom Styles */
@@ -638,6 +684,68 @@
     font-weight: bold !important;
   }
   
+  /* Dry Run Trace Panel Styles */
+  .dry-run-panel {
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .dry-run-header {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .dry-run-body {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .dry-run-explanation {
+    flex: 1.5;
+    font-size: 13px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .dry-run-variables {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    max-height: 120px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .variable-badge {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.02);
+    border-radius: 4px;
+  }
+  .variable-badge:last-child {
+    border-bottom: none;
+  }
+  .variable-name {
+    color: var(--accent3);
+    font-weight: 700;
+  }
+  .variable-value {
+    color: var(--text);
+  }
+
   .flow-controls {
     padding: 16px 20px; border-top: 1px solid var(--border); background: var(--surface);
     display: flex; align-items: center; justify-content: space-between;
@@ -1426,6 +1534,22 @@ def two_sum(nums, target):
           Graph will appear here
         </div>
       </div>
+      <!-- Zoom Controls Overlay -->
+      <div class="zoom-controls-overlay">
+        <button class="zoom-overlay-btn" onclick="zoomIn()" title="Zoom In">➕</button>
+        <button class="zoom-overlay-btn" onclick="zoomOut()" title="Zoom Out">➖</button>
+        <button class="zoom-overlay-btn" onclick="resetZoom()" title="Reset Zoom & Centering">🔄</button>
+      </div>
+      
+      <!-- Dry Run Trace Panel -->
+      <div class="dry-run-panel" id="dryRunPanel" style="display: none;">
+        <div class="dry-run-header">📋 Step Trace / Dry Run Info</div>
+        <div class="dry-run-body">
+          <div class="dry-run-explanation" id="dryRunExplanation">Click Play or Next to start dry run trace.</div>
+          <div class="dry-run-variables" id="dryRunVariables"></div>
+        </div>
+      </div>
+      
       <div class="flow-controls">
         <div class="controls-group">
           <button class="control-btn play-btn" id="playBtn" onclick="togglePlay()" disabled>▶ Play</button>
@@ -1671,6 +1795,7 @@ def two_sum(nums, target):
   // Check backend connectivity on load
   window.addEventListener('DOMContentLoaded', () => {
     checkBackendHealth();
+    setupZoomPan();
   });
 
   // Check backend connectivity on load — only once (DOMContentLoaded is also registered above)
@@ -2043,10 +2168,10 @@ When answering:
   function cleanMermaid(code) {
     return code
       .replace(/```mermaid/gi, "")
+      .replace(/```/g, "")
       .replace(/`/g, "")
       .replace(/\r/g, "")
       .replace(/graph TD\s*/i, "graph TD\n")
-      .replace(/[^a-zA-Z0-9\[\]{}\->|\s\n]/g, "")
       .trim();
   }
 
@@ -2056,6 +2181,8 @@ When answering:
 
   async function generateFlow(isRetry = false) {
     const code = document.getElementById('flowCodeInput').value.trim();
+    const flowCustomInputEl = document.getElementById('flowCustomInput');
+    const customInput = flowCustomInputEl ? flowCustomInputEl.value.trim() : '';
     if (!code) { showNotif('⚠ Please enter some code first.'); return; }
     
     const btn = document.getElementById('generateFlowBtn');
@@ -2066,7 +2193,7 @@ When answering:
       const resp = await fetch(`${BACKEND_URL}/api/flow/generate`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ code, isRetry })
+        body: JSON.stringify({ code, isRetry, customInput })
       });
       
       if (!resp.ok) {
@@ -2093,12 +2220,89 @@ When answering:
       if (!lastValidMermaid) {
         renderFallback();
       } else {
-        showErrorOverlay();
+        showErrorOverlay(customMsg);
       }
     } finally {
       btn.disabled = false;
       btn.textContent = 'Generate Flow';
     }
+  }
+
+  // ── Zoom & Pan Flowchart Canvas Logic ──
+  let zoomScale = 1.0;
+  let panX = 0;
+  let panY = 0;
+  let isPanning = false;
+  let startX = 0;
+  let startY = 0;
+
+  function updateGraphTransform() {
+    const container = document.getElementById('mermaidContainer');
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+    svg.style.transformOrigin = 'center center';
+    svg.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+    svg.style.transition = isPanning ? 'none' : 'transform 0.15s ease-out';
+  }
+
+  window.zoomIn = function() {
+    zoomScale = Math.min(zoomScale + 0.15, 4.0);
+    updateGraphTransform();
+  };
+
+  window.zoomOut = function() {
+    zoomScale = Math.max(zoomScale - 0.15, 0.25);
+    updateGraphTransform();
+  };
+
+  window.resetZoom = function() {
+    zoomScale = 1.0;
+    panX = 0;
+    panY = 0;
+    updateGraphTransform();
+  };
+
+  function setupZoomPan() {
+    const container = document.getElementById('mermaidContainer');
+    if (!container) return;
+
+    container.addEventListener('wheel', (e) => {
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+      e.preventDefault();
+      const zoomFactor = 0.08;
+      if (e.deltaY < 0) {
+        zoomScale = Math.min(zoomScale + zoomFactor, 4.0);
+      } else {
+        zoomScale = Math.max(zoomScale - zoomFactor, 0.25);
+      }
+      updateGraphTransform();
+    }, { passive: false });
+
+    container.addEventListener('mousedown', (e) => {
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+      if (e.target.closest('.zoom-controls-overlay')) return;
+      
+      isPanning = true;
+      startX = e.clientX - panX;
+      startY = e.clientY - panY;
+      container.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isPanning) return;
+      panX = e.clientX - startX;
+      panY = e.clientY - startY;
+      updateGraphTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isPanning) return;
+      isPanning = false;
+      container.style.cursor = 'default';
+      updateGraphTransform();
+    });
   }
 
   async function renderFlow(mermaidCode, steps, isFallback = false) {
@@ -2116,6 +2320,8 @@ When answering:
       await mermaid.run({
         querySelector: '.mermaid'
       });
+      
+      resetZoom(); // Reset graph scale and center it upon successful load
       
       document.getElementById('playBtn').disabled = false;
       document.getElementById('nextBtn').disabled = false;
@@ -2137,7 +2343,7 @@ When answering:
     }
   }
 
-  function renderFallback() {
+  function renderFallback(customMsg = null) {
     const fallbackMermaid = `graph TD\nA[Start] --> B[Processing]\nB --> C[End]`;
     const fallbackSteps = ['A', 'B', 'C'];
     renderFlow(fallbackMermaid, fallbackSteps, true).then(() => {
@@ -2163,10 +2369,47 @@ When answering:
     container.appendChild(overlay);
   }
 
+  function updateDryRunUI() {
+    const panel = document.getElementById('dryRunPanel');
+    const exp = document.getElementById('dryRunExplanation');
+    const vars = document.getElementById('dryRunVariables');
+    if (!panel || !exp || !vars) return;
+
+    if (currentStepIndex < 0 || !flowSteps[currentStepIndex]) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    const step = flowSteps[currentStepIndex];
+    if (typeof step === 'string') {
+      panel.style.display = 'none';
+      return;
+    }
+
+    panel.style.display = 'block';
+    exp.textContent = step.explanation || 'No trace information for this step.';
+
+    let varHtml = '';
+    if (step.variables) {
+      for (const [name, val] of Object.entries(step.variables)) {
+        // Format object/array displays slightly better if they are strings
+        let formattedVal = typeof val === 'object' ? JSON.stringify(val) : String(val);
+        varHtml += `
+          <div class="variable-badge">
+            <span class="variable-name">${name}</span>
+            <span class="variable-value">${formattedVal}</span>
+          </div>
+        `;
+      }
+    }
+    vars.innerHTML = varHtml || '<div style="color:var(--muted); font-size:11px; padding:4px;">No active variables.</div>';
+  }
+
   function updateControlsUI() {
     const playBtn = document.getElementById('playBtn');
     playBtn.innerHTML = isPlaying ? '⏸ Pause' : '▶ Play';
     document.getElementById('stepCounter').textContent = `Step: ${Math.max(0, currentStepIndex + 1)} / ${flowSteps.length}`;
+    updateDryRunUI();
   }
 
   function highlightNode(nodeId) {
@@ -2203,7 +2446,9 @@ When answering:
       return;
     }
     currentStepIndex++;
-    highlightNode(flowSteps[currentStepIndex]);
+    const step = flowSteps[currentStepIndex];
+    const nodeId = (step && typeof step === 'object') ? step.nodeId : step;
+    highlightNode(nodeId);
     updateControlsUI();
   }
 
