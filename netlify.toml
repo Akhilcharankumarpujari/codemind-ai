@@ -4,6 +4,11 @@
 
 [[redirects]]
   from = "/"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/chat"
   to = "/Aicodingchatbot .HTML"
   status = 200
 

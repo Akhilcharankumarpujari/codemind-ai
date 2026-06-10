@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeMind AI — Sign In</title>
+<meta name="description" content="Sign in to CodeMind AI — Your intelligent coding assistant with RAG, multi-agent system, and code execution.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/auth.css">
+<link rel="icon" type="image/png" href="/assets/images/favicon.png">
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon" style="background: none; padding: 0;"><img src="/assets/images/logo.png" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" alt="Logo"></div>
+    <div class="logo-text">Code<span>Mind</span> AI</div>
+  </div>
+  <div class="tagline">Multi-Agent · RAG · Code Execution · Streaming</div>
+
+  <div class="tabs">
+    <div class="tab-slider" id="tabSlider"></div>
+    <button class="tab active" id="loginTab" onclick="switchTab('login')">Sign In</button>
+    <button class="tab" id="registerTab" onclick="switchTab('register')">Create Account</button>
+  </div>
+
+  <form class="form" id="authForm" onsubmit="handleSubmit(event)">
+    <div class="form-group" id="nameGroup" style="display:none">
+      <input type="text" id="nameInput" placeholder=" " autocomplete="name">
+      <label for="nameInput">Your Name</label>
+    </div>
+    <div class="form-group">
+      <input type="email" id="emailInput" placeholder=" " required autocomplete="email">
+      <label for="emailInput">Email Address</label>
+    </div>
+    <div class="form-group">
+      <input type="password" id="passwordInput" placeholder=" " required autocomplete="current-password">
+      <label for="passwordInput">Password</label>
+    </div>
+    <div id="passwordStrength" style="display: none; height: 3px; background: rgba(255,255,255,0.05); border-radius: 2px; overflow: hidden; margin-top: -6px; margin-bottom: 6px;">
+      <div id="passwordStrengthBar" style="height: 100%; width: 0%; transition: width 0.3s, background-color 0.3s;"></div>
+    </div>
+    <div id="passwordStrengthText" style="display: none; font-size: 11px; color: var(--muted); margin-top: -4px; margin-bottom: 6px; font-family: var(--mono);">Strength: <span id="strengthLabel" style="font-weight: 700;">Weak</span></div>
+
+    <div class="error-msg" id="errorMsg"></div>
+    <div class="success-msg" id="successMsg"></div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">Sign In</button>
+  </form>
+
+  <div class="features">
+    <div class="feature"><div class="feature-dot"></div>Debug Agent</div>
+    <div class="feature"><div class="feature-dot" style="background:#818cf8"></div>Arch Agent</div>
+    <div class="feature"><div class="feature-dot" style="background:#34d399"></div>Security Agent</div>
+    <div class="feature"><div class="feature-dot" style="background:#f59e0b"></div>RAG Search</div>
+    <div class="feature"><div class="feature-dot"></div>Code Execution</div>
+    <div class="feature"><div class="feature-dot" style="background:#818cf8"></div>Streaming</div>
+  </div>
+</div>
+
+<!-- Load Auth API & Component Scripts -->
+<script src="/js/api/authApi.js"></script>
+<script src="/js/auth/login.js"></script>
+</body>
+</html>

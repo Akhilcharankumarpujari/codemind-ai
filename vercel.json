@@ -1,6 +1,7 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/Aicodingchatbot .HTML" },
+    { "source": "/", "destination": "/index.html" },
+    { "source": "/chat", "destination": "/Aicodingchatbot .HTML" },
     { "source": "/login", "destination": "/login.html" }
   ]
 }

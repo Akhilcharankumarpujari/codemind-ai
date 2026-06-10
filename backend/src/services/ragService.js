@@ -1,26 +1,26 @@
-/**
- * CodeMind AI — RAG Service Client (Node.js)
- *
- * Calls the Python RAG microservice (FastAPI on port 8000) to:
- *   1. Retrieve relevant document chunks for a query
- *   2. Index new documents uploaded by the user
- *
- * If the RAG service is unreachable, functions fail gracefully
- * so the chat still works (just without RAG context).
- */
+
+
+
+
+
+
+
+
+
+
 
 const RAG_SERVICE_URL = process.env.RAG_SERVICE_URL || 'http://localhost:8000';
-const RAG_TIMEOUT_MS = 5000; // don't block chat for more than 5s
+const RAG_TIMEOUT_MS = 5000; 
 
-/**
- * Retrieve relevant context for a user query.
- *
- * @param {string} query   - The user's question
- * @param {number} [topK=4] - Number of chunks to retrieve
- * @returns {Promise<{context: string, results: Array}>}
- *          context: formatted string ready to inject into prompt
- *          results: raw chunk array with scores
- */
+
+
+
+
+
+
+
+
+
 export async function retrieveContext(query, topK = 4) {
   try {
     const controller = new AbortController();
@@ -52,13 +52,13 @@ export async function retrieveContext(query, topK = 4) {
   }
 }
 
-/**
- * Index a new document into the RAG vector store.
- *
- * @param {string} text   - Raw document text
- * @param {string} source - Friendly name (e.g. "my_notes")
- * @returns {Promise<{indexed_chunks: number, total_chunks: number}>}
- */
+
+
+
+
+
+
+
 export async function indexDocument(text, source = 'user_upload') {
   const resp = await fetch(`${RAG_SERVICE_URL}/index`, {
     method: 'POST',
@@ -74,10 +74,10 @@ export async function indexDocument(text, source = 'user_upload') {
   return resp.json();
 }
 
-/**
- * Get RAG service status and store stats.
- * @returns {Promise<object>}
- */
+
+
+
+
 export async function ragStatus() {
   try {
     const resp = await fetch(`${RAG_SERVICE_URL}/status`);
@@ -87,10 +87,10 @@ export async function ragStatus() {
   }
 }
 
-/**
- * List all indexed documents with chunk counts.
- * @returns {Promise<{documents: Array, total_documents: number, total_chunks: number}>}
- */
+
+
+
+
 export async function listDocuments() {
   try {
     const resp = await fetch(`${RAG_SERVICE_URL}/documents`);
@@ -100,11 +100,11 @@ export async function listDocuments() {
   }
 }
 
-/**
- * Delete a document from the RAG store by its source name.
- * @param {string} source - The document source name (filename stem)
- * @returns {Promise<object>}
- */
+
+
+
+
+
 export async function deleteDocument(source) {
   const resp = await fetch(`${RAG_SERVICE_URL}/documents/${encodeURIComponent(source)}`, {
     method: 'DELETE',
@@ -116,15 +116,15 @@ export async function deleteDocument(source) {
   return resp.json();
 }
 
-/**
- * Upload a PDF or TXT file to the RAG service for indexing.
- * Forwards the raw file buffer as multipart/form-data.
- *
- * @param {Buffer} buffer       - Raw file bytes
- * @param {string} originalname - Original filename (e.g. "report.pdf")
- * @param {string} mimetype     - MIME type (e.g. "application/pdf")
- * @returns {Promise<object>}
- */
+
+
+
+
+
+
+
+
+
 export async function uploadFileToRag(buffer, originalname, mimetype) {
   const blob = new Blob([buffer], { type: mimetype });
   const formData = new FormData();

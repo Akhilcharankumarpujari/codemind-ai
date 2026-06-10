@@ -1,16 +1,20 @@
-/**
- * CodeMind AI — JWT Authentication Middleware
- */
 import jwt from 'jsonwebtoken';
 
 export const JWT_SECRET = process.env.JWT_SECRET || 'codemind-dev-secret-change-in-prod';
 
-/**
- * Middleware: verifies Bearer token, attaches req.user
- */
+function getCookie(req, name) {
+  const cookieHeader = req.headers.cookie || '';
+  const cookies = cookieHeader.split(';').map(c => c.trim());
+  for (const c of cookies) {
+    if (c.startsWith(name + '=')) {
+      return decodeURIComponent(c.substring(name.length + 1));
+    }
+  }
+  return null;
+}
+
 export function requireAuth(req, res, next) {
-  const header = req.headers['authorization'] || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = getCookie(req, 'cm_token');
 
   if (!token) {
     return res.status(401).json({ error: 'Authentication required. Please log in.' });
@@ -25,16 +29,12 @@ export function requireAuth(req, res, next) {
   }
 }
 
-/**
- * Optional auth: attaches req.user if token present, but doesn't block
- */
 export function optionalAuth(req, _res, next) {
-  const header = req.headers['authorization'] || '';
-  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = getCookie(req, 'cm_token');
   if (token) {
     try {
       req.user = jwt.verify(token, JWT_SECRET);
-    } catch { /* expired/invalid — ignore */ }
+    } catch { }
   }
   next();
 }

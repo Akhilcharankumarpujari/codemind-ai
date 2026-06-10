@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CodeMind AI — Smarter Coding, Faster Tracing, Bigger Wins</title>
+<meta name="description" content="CodeMind AI is an interactive DSA and coding interview assistant. Visualize code execution flow, trace variables step-by-step, and optimize your logic.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/main.css">
+<link rel="icon" type="image/png" href="/assets/images/favicon.png">
+</head>
+<body>
+
+<div class="nebula-bg"></div>
+<div class="grid-overlay"></div>
+
+<!-- Custom Header Component -->
+<app-navbar></app-navbar>
+
+<div class="container">
+  <!-- Custom Hero Component -->
+  <app-hero></app-hero>
+
+  <!-- Custom Features/Mockup Component -->
+  <app-features></app-features>
+
+  <!-- How It Works Section -->
+  <section class="steps-section" id="workflow">
+    <div class="steps-tag">
+      <div class="hero-badge-dot"></div>
+      How it Works
+    </div>
+    <h2 class="steps-title">Get Started In Just Few Simple Steps</h2>
+    <p class="steps-sub">One platform to trace, analyze, and optimize your algorithms.</p>
+    
+    <div class="steps-grid">
+      <!-- Step 1 -->
+      <div class="step-card">
+        <div class="step-badge">STEP 1</div>
+        <h3 class="step-card-title">Paste &amp; Analyze</h3>
+        <p class="step-card-desc">
+          Paste any DSA code snippet in Python, JS, Java, or C++. CodeMind AI automatically parses syntax and highlights structural blocks.
+        </p>
+      </div>
+      <!-- Step 2 -->
+      <div class="step-card">
+        <div class="step-badge">STEP 2</div>
+        <h3 class="step-card-title">Auto Input Detection</h3>
+        <p class="step-card-desc">
+          The system dynamically determines if the code requires external input or runs automatically using hardcoded logic.
+        </p>
+      </div>
+      <!-- Step 3 -->
+      <div class="step-card">
+        <div class="step-badge">STEP 3</div>
+        <h3 class="step-card-title">Visual Trace Steps</h3>
+        <p class="step-card-desc">
+          Step through loops, branches, and variable states with animated flowchart tracing and live mentor explanations.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Custom Footer Component -->
+  <app-footer></app-footer>
+</div>
+
+<!-- Load Auth API & Component Scripts -->
+<script src="/js/api/authApi.js"></script>
+<script src="/components/navbar/navbar.js"></script>
+<script src="/components/hero/hero.js"></script>
+<script src="/components/features/features.js"></script>
+<script src="/components/footer/footer.js"></script>
+<script src="/js/dashboard/landing.js"></script>
+
+</body>
+</html>

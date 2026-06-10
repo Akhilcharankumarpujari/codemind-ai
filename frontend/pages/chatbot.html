@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CodeMind AI — DSA & Coding Interview Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/css/dashboard.css">
+<link rel="stylesheet" href="/css/chatbot.css">
+<link rel="icon" type="image/png" href="/assets/images/favicon.png">
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      securityLevel: 'loose',
+      fontFamily: 'JetBrains Mono, monospace',
+      themeVariables: {
+        background: 'transparent',
+        primaryColor: '#181c24',
+        primaryTextColor: '#e2e8f0',
+        primaryBorderColor: '#232836',
+        lineColor: '#232836',
+        secondaryColor: '#181c24',
+        tertiaryColor: '#181c24',
+      },
+      flowchart: {
+        htmlLabels: true,
+        useWidth: true,
+        curve: 'basis'
+      }
+    });
+  });
+</script>
+</head>
+<body>
+<div class="app">
+  <div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileSidebar()"></div>
+  
+  <!-- DSA Mastery Roadmap Modal -->
+  <div class="rm-modal-overlay hidden" id="roadmapModal">
+    <div class="rm-modal">
+      <div class="rm-header">
+        <div class="rm-title">🗺️ DSA Mastery Roadmap</div>
+        <button class="pill" onclick="toggleRoadmapMode()">✕ Close</button>
+      </div>
+      <div class="rm-body">
+        
+        <div class="rm-level">
+          <div class="rm-level-title">Step 1: The Basics</div>
+          <div class="rm-grid">
+            <div class="rm-topic completed" onclick="askRoadmap('Arrays & Hashing')">
+              <span class="rm-topic-icon">📦</span><span class="rm-topic-name">Arrays &amp; Hashing</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Two Pointers')">
+              <span class="rm-topic-icon">👉</span><span class="rm-topic-name">Two Pointers</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Sliding Window')">
+              <span class="rm-topic-icon">🪟</span><span class="rm-topic-name">Sliding Window</span><div class="rm-topic-status"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rm-level">
+          <div class="rm-level-title">Step 2: Core Data Structures</div>
+          <div class="rm-grid">
+            <div class="rm-topic" onclick="askRoadmap('Linked Lists')">
+              <span class="rm-topic-icon">🔗</span><span class="rm-topic-name">Linked Lists</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Stack')">
+              <span class="rm-topic-icon">📚</span><span class="rm-topic-name">Stack</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Binary Search')">
+              <span class="rm-topic-icon">🔎</span><span class="rm-topic-name">Binary Search</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Trees')">
+              <span class="rm-topic-icon">🌳</span><span class="rm-topic-name">Trees</span><div class="rm-topic-status"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rm-level">
+          <div class="rm-level-title">Step 3: Advanced Techniques</div>
+          <div class="rm-grid">
+            <div class="rm-topic" onclick="askRoadmap('Graphs')">
+              <span class="rm-topic-icon">🕸️</span><span class="rm-topic-name">Graphs</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Dynamic Programming')">
+              <span class="rm-topic-icon">🧠</span><span class="rm-topic-name">1D / 2D DP</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Backtracking')">
+              <span class="rm-topic-icon">🔙</span><span class="rm-topic-name">Backtracking</span><div class="rm-topic-status"></div>
+            </div>
+            <div class="rm-topic" onclick="askRoadmap('Heap / Priority Queue')">
+              <span class="rm-topic-icon">⛰️</span><span class="rm-topic-name">Heaps</span><div class="rm-topic-status"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Sidebar Element -->
+  <app-sidebar></app-sidebar>
+
+  <!-- ── MAIN PANEL VIEWS ── -->
+  
+  <!-- Chat Area (View 1) -->
+  <main class="chat-area" id="chatArea">
+    <!-- Custom Topbar Element -->
+    <app-topbar></app-topbar>
+
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="hero-logo-wrapper">
+          <div class="welcome-icon">
+            <img src="/assets/images/logo.png" alt="CodeMind AI Logo">
+          </div>
+        </div>
+        <h2>Your Personal <span>DSA Mentor</span></h2>
+        <p>Master Data Structures and Algorithms with AI-powered problem solving, interactive dry runs, and coding interview preparation.</p>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrap">
+        <div class="input-row">
+          
+          <input type="file" id="inputFileHidden" style="display:none"
+            accept=".py,.java,.cpp,.c,.js,.ts,.pdf,.txt,.md,.docx"
+            onchange="handleInputFileSelect(event)">
+
+          <div class="plus-btn-wrap">
+            <button class="input-plus-btn" id="inputPlusBtn"
+              onclick="toggleUploadPopup(event)"
+              title="Attach a file" aria-label="Attach a file">+</button>
+            
+            <!-- Popup Actions -->
+            <div class="upload-popup hidden" id="uploadPopup">
+              <span class="popup-label">Attach Context</span>
+              <button class="popup-item" onclick="triggerFilePick('.py,.js,.ts,.java,.cpp,.c,.txt,.md')">
+                <span class="pi-icon">💻</span>
+                <div>
+                  <div class="pi-label">Source Code File</div>
+                  <div class="pi-sub">Inject python, js, java...</div>
+                </div>
+              </button>
+              <button class="popup-item" onclick="triggerFilePick('.pdf,.txt,.md,.docx')">
+                <span class="pi-icon">📄</span>
+                <div>
+                  <div class="pi-label">RAG Document</div>
+                  <div class="pi-sub">Ingest PDF/TXT into vector DB</div>
+                </div>
+              </button>
+              <button class="popup-item" onclick="openUploadModal()">
+                <span class="pi-icon">📤</span>
+                <div>
+                  <div class="pi-label">Manage Knowledge Base</div>
+                  <div class="pi-sub">Manage PDF indexes in vector database</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <textarea id="userInput" rows="1" placeholder="Ask DSA questions, dry runs, debugging, complexity analysis…"
+            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="sendBtn" onclick="sendMessage()">➤</button>
+        </div>
+
+        <div class="file-preview-bar" id="filePreviewBar" style="display:none"></div>
+        <div class="input-hints">
+          <span class="hint"><kbd>Enter</kbd> send</span>
+          <span class="hint"><kbd>Shift+Enter</kbd> new line</span>
+          <span class="hint">·</span>
+          <span class="hint" id="statusHint" style="color:var(--accent3)">● RAG Active</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Complexity Area (View 2) -->
+  <main class="complexity-area" id="complexityArea" style="display:none">
+    <div class="cx-left">
+      <div class="cx-topbar">
+        <div class="cx-title">Complexity <span>Analyzer</span></div>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">DSA Mentor Mode</span>
+      </div>
+      <div class="cx-body">
+        <div>
+          <div class="cx-label">Select Language</div>
+          <select class="cx-lang-select" id="cxLang">
+            <option value="python">Python</option>
+            <option value="javascript">JavaScript</option>
+            <option value="java">Java</option>
+            <option value="c++">C++</option>
+          </select>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div class="cx-label">Paste Your Code</div>
+          <textarea class="cx-code-input" id="cxCodeInput" placeholder="# Paste your code here...
+def two_sum(nums, target):
+    for i in range(len(nums)):
+        for j in range(i+1, len(nums)):
+            if nums[i] + nums[j] == target:
+                return [i, j]
+    return []"></textarea>
+        </div>
+        <button class="cx-analyze-btn" id="cxAnalyzeBtn" onclick="analyzeComplexity()">
+          Analyze Complexity
+        </button>
+        <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono);text-align:center;line-height:1.6">
+          Detects: nested loops · recursion · DP · divide &amp; conquer<br>binary search · two pointers · sliding window · graphs
+        </div>
+      </div>
+    </div>
+
+    <div class="cx-right">
+      <div class="cx-topbar" style="border-left:none">
+        <div class="cx-title" style="color:var(--text)">Analysis <span>Results</span></div>
+        <button class="pill" onclick="toggleComplexityMode()">✕ Close</button>
+      </div>
+      <div id="cxResults">
+        <div class="cx-placeholder">
+          <div class="cx-placeholder-icon">🔍</div>
+          <h3>No Code Analyzed Yet</h3>
+          <p>Paste your code on the left, select your language,<br>then click <strong>Analyze Complexity</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Flow Area (View 3) -->
+  <main class="flow-area" id="flowArea" style="display:none">
+    <div class="flow-left">
+      <div class="flow-header"><span>⚡</span> Flow Visualizer</div>
+
+      <div class="flow-tab-bar">
+        <button class="flow-tab active" id="tabFlowBtn" onclick="switchFlowTab('flow')">🔀 Flow Graph</button>
+        <button class="flow-tab" id="tabDryRunBtn" onclick="switchFlowTab('dryrun')">🧪 Dry Run</button>
+      </div>
+
+      <div id="flowInputPanel" style="display:flex;flex-direction:column;flex:1;">
+        <div style="font-size:12px; color:var(--muted); margin-bottom:10px">Paste your code to generate an animated execution flowchart.</div>
+        <textarea class="flow-code-input" id="flowCodeInput" placeholder="function example() {
+  let x = 10;
+  if (x > 5) {
+    return true;
+  }
+  return false;
+}"></textarea>
+        <button class="flow-btn" id="generateFlowBtn" onclick="generateFlow()">Generate Flow</button>
+      </div>
+
+      <div id="dryRunInputPanel" style="display:none;flex-direction:column;flex:1;">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Paste your code and watch the execution step-by-step with live variable tracking.</div>
+        <textarea class="flow-code-input" id="drCodeInput" style="flex:1;margin-bottom:12px;" placeholder="def two_sum(nums, target):
+    for i in range(len(nums)):
+        for j in range(i+1, len(nums)):
+            if nums[i] + nums[j] == target:
+                return [i, j]" oninput="handleDrCodeChange()"></textarea>
+        
+        <div id="drInputWrapper" style="margin-bottom:12px;">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Sample Input</div>
+          <input class="dr-input" id="drSampleInput" style="width:100%;margin-bottom:4px;" placeholder="e.g. nums=[2,7,11,15], target=9" />
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">💡 Describe your input naturally — the AI will parse it.</div>
+        </div>
+
+        <button class="dr-run-btn" id="drRunBtn" style="width:100%;padding:12px;" onclick="runDryRun()">▶ Run</button>
+      </div>
+    </div>
+
+    <div class="flow-right">
+      
+      <div id="flowGraphRight" style="display:flex;flex-direction:column;height:100%;">
+        <div class="chat-topbar" style="border-bottom:1px solid var(--border);background:var(--surface);">
+          <div class="chat-title">Execution <span>Graph</span></div>
+          <button class="pill" onclick="toggleFlowMode()">✕ Close</button>
+        </div>
+        <div class="mermaid-container" id="mermaidContainer">
+          <div style="color:var(--muted);font-size:13px;text-align:center;">
+            <div style="font-size:36px;margin-bottom:10px;opacity:0.3">🔀</div>
+            Graph will appear here
+          </div>
+        </div>
+        
+        <div class="zoom-controls-floating" id="zoomControls" style="display: none;">
+          <button onclick="zoomOut()" title="Zoom Out">−</button>
+          <span id="zoomPercent">100%</span>
+          <button onclick="zoomIn()" title="Zoom In">+</button>
+          <button onclick="resetZoom()" title="Reset Zoom">⟲</button>
+        </div>
+        
+        <div class="flow-controls">
+          <div class="controls-group">
+            <button class="control-btn play-btn" id="playBtn" onclick="togglePlay()" disabled>▶ Play</button>
+            <button class="control-btn" id="nextBtn" onclick="nextStep()" disabled>⏭ Next</button>
+            <button class="control-btn" id="resetBtn" onclick="resetAnimation()" disabled>🔄 Reset</button>
+          </div>
+          <div class="controls-group">
+            <span class="step-counter" id="stepCounter">Step: 0 / 0</span>
+            <select class="speed-select" id="speedSelect" onchange="handleSpeedChange()">
+              <option value="1500">Slow</option>
+              <option value="800" selected>Normal</option>
+              <option value="400">Fast</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dry Run Right Panel -->
+      <div id="dryRunRight" style="display:none;flex-direction:column;height:100%;">
+        <div class="dr-topbar">
+          <div style="font-size:15px;font-weight:800;">Dry Run <span style="color:#a78bfa">Trace</span></div>
+          <button class="pill" onclick="toggleFlowMode()">✕ Close</button>
+        </div>
+
+        <div class="dr-summary-bar" id="drSummaryBar" style="display:none;">
+          <span class="dr-badge" id="drInputBadge">Input: —</span>
+          <span class="dr-badge" style="color:#34d399;border-color:rgba(52,211,153,0.3);background:rgba(52,211,153,0.08)" id="drOutputBadge">Output: —</span>
+          <span class="dr-summary-text" id="drSummaryText"></span>
+        </div>
+
+        <div class="dr-body" id="drBody">
+          <div class="dr-placeholder" id="drPlaceholder">
+            <div class="dr-placeholder-icon">🧪</div>
+            <h3>Dry Run Visualizer</h3>
+            <p>Paste your code on the left, enter a sample input, and click <strong>Run</strong> to trace execution step by step.</p>
+          </div>
+
+          <div class="dr-vars-panel" id="drVarsPanel" style="display:none;">
+            <div class="dr-vars-title">📦 Live Variables</div>
+            <div class="dr-vars-grid" id="drVarsGrid"></div>
+          </div>
+
+          <div class="dr-trace-wrap" id="drTraceWrap" style="display:none;">
+            <div class="dr-trace-header">
+              <div>#</div>
+              <div>Line</div>
+              <div>Action</div>
+              <div>Variables</div>
+            </div>
+            <div id="drTraceBody"></div>
+          </div>
+        </div>
+
+        <div class="dr-controls" id="drControls" style="display:none;">
+          <div class="controls-group">
+            <button class="control-btn play-btn" id="drPlayBtn" onclick="drTogglePlay()">▶ Play</button>
+            <button class="control-btn" id="drPrevBtn" onclick="drPrevStep()" disabled>◀ Prev</button>
+            <button class="control-btn" id="drNextBtn" onclick="drNextStep()">Next ▶</button>
+            <button class="control-btn" id="drResetBtn" onclick="drResetSteps()">🔄 Reset</button>
+          </div>
+          <div class="controls-group">
+            <span class="dr-step-label" id="drStepLabel">Step 0 / 0</span>
+            <select class="speed-select" id="drSpeedSelect">
+              <option value="1200">Slow</option>
+              <option value="600" selected>Normal</option>
+              <option value="250">Fast</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Knowledge Base (RAG) Manager Modal -->
+<div class="modal-overlay hidden" id="uploadOverlay" onclick="handleOverlayClick(event)">
+  <div class="upload-modal">
+    <div class="modal-title">🗂️ Knowledge Base <span>(RAG)</span></div>
+    <div class="modal-sub">Add documents to contextualize the AI mentor for your assignments</div>
+    
+    <div class="drop-zone" id="dropZone"
+      ondragover="handleDragOver(event)"
+      ondragleave="handleDragLeave()"
+      ondrop="handleDrop(event)">
+      <div class="drop-icon" id="dropIcon">📄</div>
+      <div class="drop-label" id="dropLabel">Drag &amp; drop your file here</div>
+      <div class="drop-hint">Supports: PDF, TXT, MD, DOCX, Code files</div>
+      <input type="file" id="fileInput" onchange="handleFileSelect(event)">
+    </div>
+    
+    <div class="upload-progress" id="uploadProgress">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">Initializing upload...</div>
+    </div>
+    
+    <div style="margin-top:20px;">
+      <div class="field-label" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Active Documents</span>
+        <span id="docCount" style="color:var(--accent)"></span>
+      </div>
+      <div class="doc-list" id="docList">
+        <div class="no-docs-hint" id="noDocsHint">Loading documents...</div>
+      </div>
+    </div>
+    
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeUploadModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Load API Layers, Web Components and Interaction Script -->
+<script src="/js/api/authApi.js"></script>
+<script src="/js/api/chatbotApi.js"></script>
+<script src="/js/api/visualizerApi.js"></script>
+<script src="/components/sidebar/sidebar.js"></script>
+<script src="/components/topbar/topbar.js"></script>
+<script src="/js/chatbot/chatbot.js"></script>
+</body>
+</html>
