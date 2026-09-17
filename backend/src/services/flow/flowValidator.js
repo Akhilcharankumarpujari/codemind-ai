@@ -11,17 +11,14 @@ function issue(severity, code, message, details = {}) {
 
 function normalizeGraph(graph) {
   if (!graph || typeof graph !== 'object') {
-    return { version: '1.0', nodes: [], edges: [] };
+    return { version: '1.0', language: null, nodes: [], edges: [], metadata: {} };
   }
-
-  const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
-  const edges = Array.isArray(graph.edges) ? graph.edges : [];
 
   return {
     version: graph.version || '1.0',
     language: graph.language || null,
-    nodes,
-    edges,
+    nodes: graph.nodes,
+    edges: graph.edges,
     metadata: graph.metadata || {}
   };
 }
@@ -45,7 +42,10 @@ export function validateFlowGraph(graph, sourceCode = '') {
     errors.push(issue('error', 'EDGES_NOT_ARRAY', 'edges must be an array.'));
   }
 
-  for (const node of normalized.nodes) {
+  const nodes = Array.isArray(normalized.nodes) ? normalized.nodes : [];
+  const edges = Array.isArray(normalized.edges) ? normalized.edges : [];
+
+  for (const node of nodes) {
     if (!node || typeof node !== 'object') {
       errors.push(issue('error', 'INVALID_NODE', 'Each node must be an object.'));
       continue;
@@ -67,7 +67,7 @@ export function validateFlowGraph(graph, sourceCode = '') {
     }
 
     const { start, end } = normalizeLineRange(node);
-    if (sourceCode && (!Number.isInteger(start) || start < 1 || end < start)) {
+    if (sourceCode && (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start)) {
       warnings.push(issue('warning', 'INVALID_SOURCE_RANGE', `Node "${node.id}" has an invalid source line range.`, { nodeId: node.id }));
     }
   }
@@ -76,7 +76,7 @@ export function validateFlowGraph(graph, sourceCode = '') {
   const outgoing = new Map();
   const incoming = new Map();
 
-  for (const edge of normalized.edges) {
+  for (const edge of edges) {
     if (!edge || typeof edge !== 'object') {
       errors.push(issue('error', 'INVALID_EDGE', 'Each edge must be an object.'));
       continue;
@@ -108,20 +108,20 @@ export function validateFlowGraph(graph, sourceCode = '') {
     }
   }
 
-  const starts = normalized.nodes.filter(n => n?.type === 'start');
-  const ends = normalized.nodes.filter(n => n?.type === 'end');
+  const starts = nodes.filter(n => n?.type === 'start');
+  const ends = nodes.filter(n => n?.type === 'end');
 
-  if (!normalized.nodes.length) {
+  if (!nodes.length) {
     errors.push(issue('error', 'EMPTY_GRAPH', 'The flow graph contains no nodes.'));
   }
-  if (normalized.nodes.length && starts.length === 0) {
+  if (nodes.length && starts.length === 0) {
     warnings.push(issue('warning', 'NO_START_NODE', 'No explicit start node was found.'));
   }
-  if (normalized.nodes.length && ends.length === 0) {
+  if (nodes.length && ends.length === 0) {
     warnings.push(issue('warning', 'NO_END_NODE', 'No explicit end node was found.'));
   }
 
-  for (const node of normalized.nodes) {
+  for (const node of nodes) {
     const out = outgoing.get(node.id) || [];
     if (node.type === 'decision' && out.length < 2) {
       warnings.push(issue('warning', 'DECISION_MISSING_BRANCH', `Decision node "${node.id}" has fewer than two outgoing branches.`, { nodeId: node.id }));
@@ -134,13 +134,12 @@ export function validateFlowGraph(graph, sourceCode = '') {
     }
 
     const lineRange = normalizeLineRange(node);
-    if (sourceCode && lineRange.start > sourceCode.split('\n').length) {
+    if (sourceCode && Number.isInteger(lineRange.start) && lineRange.start > sourceCode.split('\n').length) {
       warnings.push(issue('warning', 'LINE_OUT_OF_RANGE', `Node "${node.id}" points beyond the end of the source code.`, { nodeId: node.id }));
     }
   }
 
-  // Reachability from the first explicit start node (or first node when no start exists).
-  const root = starts[0]?.id || normalized.nodes[0]?.id;
+  const root = starts[0]?.id || nodes[0]?.id;
   const reachable = new Set();
   if (root) {
     const queue = [root];
@@ -154,7 +153,7 @@ export function validateFlowGraph(graph, sourceCode = '') {
     }
   }
 
-  for (const node of normalized.nodes) {
+  for (const node of nodes) {
     if (node.id !== root && !reachable.has(node.id)) {
       warnings.push(issue('warning', 'UNREACHABLE_NODE', `Node "${node.id}" is unreachable from the flow entry point.`, { nodeId: node.id }));
     }
@@ -166,10 +165,10 @@ export function validateFlowGraph(graph, sourceCode = '') {
     errors,
     warnings,
     summary: {
-      nodeCount: normalized.nodes.length,
-      edgeCount: normalized.edges.length,
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
       reachableNodeCount: reachable.size,
-      unreachableNodeCount: normalized.nodes.filter(n => !reachable.has(n.id)).length
+      unreachableNodeCount: nodes.filter(n => !reachable.has(n.id)).length
     }
   };
 }
@@ -177,8 +176,6 @@ export function validateFlowGraph(graph, sourceCode = '') {
 export function validateFlowGenerationResult(result, sourceCode = '') {
   const validation = validateFlowGraph(result?.graph, sourceCode);
 
-  // Mermaid-only generations do not contain a structured graph. Keep them usable,
-  // but explicitly report that structural validation could not be performed.
   if (!result?.graph) {
     validation.status = validation.errors.length ? 'invalid' : 'warning';
     validation.warnings.push(issue(
@@ -188,5 +185,26 @@ export function validateFlowGenerationResult(result, sourceCode = '') {
     ));
   }
 
+  if (result?.graph && !Array.isArray(result.steps)) {
+    validation.errors.push(issue('error', 'STEPS_NOT_ARRAY', 'The generated flow steps must be an array.'));
+  }
+
+  if (Array.isArray(result?.steps) && Array.isArray(result?.graph?.nodes)) {
+    const nodeIds = new Set(result.graph.nodes.map(node => node?.id).filter(Boolean));
+    result.steps.forEach((step, index) => {
+      const stepId = typeof step === 'string' ? step : step?.id ?? step?.nodeId ?? step?.node;
+      if (!stepId || !nodeIds.has(stepId)) {
+        validation.errors.push(issue(
+          'error',
+          'INVALID_STEP_NODE_ID',
+          `Step ${index + 1} references a node id that does not exist in graph.nodes.`,
+          { stepIndex: index, stepId: stepId || null }
+        ));
+      }
+    });
+  }
+
+  validation.valid = validation.errors.length === 0;
+  validation.status = validation.errors.length ? 'invalid' : validation.warnings.length ? 'warning' : 'valid';
   return validation;
 }
