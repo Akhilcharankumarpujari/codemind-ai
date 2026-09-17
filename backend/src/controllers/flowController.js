@@ -18,7 +18,12 @@ export const generate = async (req, res) => {
     const flowData = await generateFlow(code, isRetry, customInput);
     const validation = validateFlowGenerationResult(flowData, code);
 
-    res.json({ mermaid: flowData.mermaid, steps: flowData.steps, validation });
+    res.json({
+      mermaid: flowData.mermaid,
+      graph: flowData.graph || null,
+      steps: flowData.steps,
+      validation,
+    });
   } catch (error) {
     console.error('[Flow Generate Error]', error.message);
     const statusCode = error.message.includes('Syntax Error') || error.message.includes('Invalid input') ? 400 : 500;
@@ -76,7 +81,7 @@ export const dryrun = async (req, res) => {
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: `Language: ${language}\n\nCode:\n\`\`\`\n${code}\n\`\`\`\n\nSample Input: ${input}` }
+        { role: 'user', content: `Language: ${language}\n\nCode:\n\\`\\`\\`\n${code}\n\\`\\`\\`\n\nSample Input: ${input}` }
       ],
       temperature: 0.1,
       max_tokens: 3000,
