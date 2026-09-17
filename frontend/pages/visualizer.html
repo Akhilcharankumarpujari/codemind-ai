@@ -10,27 +10,148 @@
 </head>
 <body>
 <div class="app">
+
+  <!-- Topbar Component -->
   <app-visualizer-topbar></app-visualizer-topbar>
+
   <section class="left-panel">
     <div class="editor-section">
       <div class="editor-topbar">
-        <div class="editor-topbar-left"><div class="editor-filename"><span>📄</span><span id="editorFilename">code.py</span><span class="editor-lang-badge" id="langBadge">PY</span></div></div>
-        <button class="run-viz-btn" id="runVizBtn" onclick="runAnalysis()">🤖 Analyze &amp; Visualize</button>
+        <div class="editor-topbar-left">
+          <div class="editor-filename">
+            <span>📄</span>
+            <span id="editorFilename">code.py</span>
+            <span class="editor-lang-badge" id="langBadge">PY</span>
+          </div>
+        </div>
+        <button class="run-viz-btn" id="runVizBtn" onclick="runAnalysis()">
+          🤖 Analyze &amp; Visualize
+        </button>
       </div>
-      <div class="editor-wrap"><div class="line-numbers" id="lineNumbers"></div><div class="code-editor-area"><div class="code-highlight-layer" id="highlightLayer"></div><textarea id="codeEditor" spellcheck="false" autocorrect="off" autocapitalize="off" onkeydown="handleEditorKey(event)" oninput="onEditorInput()" onscroll="syncScroll()" placeholder="// Paste ANY code here"></textarea></div></div>
+      <div class="editor-wrap">
+        <div class="line-numbers" id="lineNumbers"></div>
+        <div class="code-editor-area">
+          <div class="code-highlight-layer" id="highlightLayer"></div>
+          <textarea id="codeEditor" spellcheck="false" autocorrect="off" autocapitalize="off"
+            onkeydown="handleEditorKey(event)" oninput="onEditorInput()" onscroll="syncScroll()"
+            placeholder="// Paste ANY code here:&#10;// • DSA algorithms (sorting, trees, graphs)&#10;// • React components  • Express APIs&#10;// • Python functions   • Java classes&#10;// • SQL queries         • Any language&#10;//&#10;// Click Analyze &amp; Visualize — AI picks the best view."></textarea>
+        </div>
+      </div>
     </div>
-    <div class="input-section"><div class="panel-label"><span class="dot dot-yellow"></span> Test Input / Context</div><div class="input-row"><textarea class="test-input" id="testInput" placeholder="Array: [64, 25, 12] | target=23"></textarea></div></div>
+    <div class="input-section">
+      <div class="panel-label"><span class="dot dot-yellow"></span> Test Input / Context</div>
+      <div class="input-row">
+        <textarea class="test-input" id="testInput" placeholder="Array: [64, 25, 12] | target=23 | or describe what this code does..."></textarea>
+      </div>
+    </div>
   </section>
+
   <section class="right-panel">
-    <div class="right-top"><div class="viz-section"><div class="viz-topbar"><div class="viz-title"><span id="vizIcon">🎬</span><span id="vizTitle">Visualization Canvas</span><span class="viz-mode-badge dsa" id="vizModeBadge">AUTO</span></div><span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="vizSubtitle"></span></div><div id="vizCanvas" style="position:relative;flex:1;overflow:hidden"><div class="analyzing-overlay hidden" id="analyzingOverlay"><div class="analyze-spinner"></div><div class="analyze-text">🤖 Analyzing your code…</div><div class="analyze-steps" id="analyzeSteps"><div class="analyze-step running" id="as1"><div class="ast">▸</div>Detecting language &amp; patterns</div><div class="analyze-step pending" id="as2"><div class="ast">○</div>Classifying code category</div><div class="analyze-step pending" id="as3"><div class="ast">○</div>Building execution trace</div><div class="analyze-step pending" id="as4"><div class="ast">○</div>Rendering visualization</div></div></div><div class="viz-placeholder" id="vizPlaceholder"><div class="ph-icon">🧠</div><h3>Universal Code Visualizer</h3><p>Paste ANY code and click Analyze.</p></div><svg id="vizSvg" style="display:none;position:absolute;inset:0;width:100%;height:100%"></svg></div></div><div class="right-side"><div class="var-tracker" style="border-bottom:1px solid var(--border)"><div class="panel-label"><span class="dot dot-cyan"></span> Variable Tracker</div><div class="var-tracker-body"><table class="var-table"><thead><tr><th>Name</th><th>Value</th><th>Δ</th></tr></thead><tbody id="varTableBody"><tr><td colspan="3">No trace yet</td></tr></tbody></table></div></div><div class="dry-run"><div class="panel-label" style="padding:8px 14px 4px"><span class="dot dot-purple"></span><span id="dryRunLabel">Dry Run Trace</span></div><div class="dry-run-body"><table class="dry-table"><thead><tr><th>#</th><th>Action</th><th>State</th></tr></thead><tbody id="dryTableBody"><tr><td colspan="3">No trace yet</td></tr></tbody></table></div></div></div></div>
-    <div class="right-bottom"><div class="panel-label" style="padding:7px 14px 5px"><span class="dot dot-green"></span> AI Explanation</div><div class="ai-panel-body" id="aiPanel"><div class="ai-explain"><span class="step-label">Ready —</span> Paste code and click Analyze &amp; Visualize.</div></div><div class="detection-panel" id="detectionPanel"><div class="detect-row"><span class="detect-label">Language</span><span class="detect-val lang" id="dLang">—</span></div><div class="detect-row"><span class="detect-label">Category</span><span class="detect-val cat" id="dCat">—</span></div><div class="detect-row"><span class="detect-label">Pattern</span><span class="detect-val pat" id="dPat">—</span></div><div class="detect-row"><span class="detect-label">Confidence</span><div style="display:flex;align-items:center;gap:5px;flex:1"><div class="conf-bar"><div class="conf-fill hi" id="confFill" style="width:0%"></div></div><span class="conf-num hi" id="confNum">—</span></div></div></div><div class="cx-row"><div class="cx-chip"><div class="cx-chip-label">Time</div><div class="cx-chip-val cx-t" id="cxTime">—</div></div><div class="cx-chip"><div class="cx-chip-label">Space</div><div class="cx-chip-val cx-s" id="cxSpace">—</div></div><div class="cx-chip"><div class="cx-chip-label">Best</div><div class="cx-chip-val cx-b" id="cxBest">—</div></div><div class="cx-chip"><div class="cx-chip-label">Worst</div><div class="cx-chip-val cx-w" id="cxWorst">—</div></div></div></div>
+    <div class="right-top">
+      <div class="viz-section">
+        <div class="viz-topbar">
+          <div class="viz-title">
+            <span id="vizIcon">🎬</span>
+            <span id="vizTitle">Visualization Canvas</span>
+            <span class="viz-mode-badge dsa" id="vizModeBadge">AUTO</span>
+          </div>
+          <span style="font-size:11px;color:var(--text3);font-family:var(--mono)" id="vizSubtitle"></span>
+        </div>
+        <div id="vizCanvas" style="position:relative;flex:1;overflow:hidden">
+          
+          <div class="analyzing-overlay hidden" id="analyzingOverlay">
+            <div class="analyze-spinner"></div>
+            <div class="analyze-text">🤖 Analyzing your code…</div>
+            <div class="analyze-steps" id="analyzeSteps">
+              <div class="analyze-step running" id="as1"><div class="ast">▸</div>Detecting language &amp; patterns</div>
+              <div class="analyze-step pending" id="as2"><div class="ast">○</div>Classifying code category</div>
+              <div class="analyze-step pending" id="as3"><div class="ast">○</div>Building execution trace</div>
+              <div class="analyze-step pending" id="as4"><div class="ast">○</div>Rendering visualization</div>
+            </div>
+          </div>
+          
+          <div class="viz-placeholder" id="vizPlaceholder">
+            <div class="ph-icon">🧠</div>
+            <h3>Universal Code Visualizer</h3>
+            <p>Paste ANY code and click Analyze. Works for all types:</p>
+            <div class="ph-hints">
+              <span class="ph-hint">📊 DSA / Algorithms</span>
+              <span class="ph-hint">⚙️ Functions &amp; Classes</span>
+              <span class="ph-hint">🏗️ APIs &amp; Backend</span>
+              <span class="ph-hint">⚛️ React Components</span>
+              <span class="ph-hint">🗄️ Database Queries</span>
+              <span class="ph-hint">🐛 Debug Review</span>
+            </div>
+          </div>
+          
+          <svg id="vizSvg" style="display:none;position:absolute;inset:0;width:100%;height:100%"></svg>
+        </div>
+      </div>
+
+      <div class="right-side">
+        <div class="var-tracker" style="border-bottom:1px solid var(--border)">
+          <div class="panel-label"><span class="dot dot-cyan"></span> Variable Tracker</div>
+          <div class="var-tracker-body">
+            <table class="var-table">
+              <thead><tr><th>Name</th><th>Value</th><th>Δ</th></tr></thead>
+              <tbody id="varTableBody"><tr><td colspan="3" style="color:var(--text3);font-size:11px;text-align:center;padding:10px">No trace yet</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="dry-run">
+          <div class="panel-label" style="padding:8px 14px 4px"><span class="dot dot-purple"></span><span id="dryRunLabel">Dry Run Trace</span></div>
+          <div class="dry-run-body">
+            <table class="dry-table">
+              <thead><tr><th>#</th><th>Action</th><th>State</th></tr></thead>
+              <tbody id="dryTableBody"><tr><td colspan="3" style="color:var(--text3);font-size:11px;text-align:center;padding:10px">No trace yet</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-bottom">
+      <div class="panel-label" style="padding:7px 14px 5px"><span class="dot dot-green"></span> AI Explanation</div>
+      <div class="ai-panel-body" id="aiPanel">
+        <div class="ai-explain"><span class="step-label">Ready —</span> Paste any code and click <span class="hw">Analyze &amp; Visualize</span>. Works for ALL code types.</div>
+      </div>
+      <div class="detection-panel" id="detectionPanel">
+        <div style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:5px;display:flex;align-items:center;gap:5px"><span class="dot dot-orange"></span> Detected Information</div>
+        <div class="detect-row"><span class="detect-label">Language</span><span class="detect-val lang" id="dLang">—</span></div>
+        <div class="detect-row"><span class="detect-label">Category</span><span class="detect-val cat" id="dCat">—</span></div>
+        <div class="detect-row"><span class="detect-label">Pattern</span><span class="detect-val pat" id="dPat">—</span></div>
+        <div class="detect-row">
+          <span class="detect-label">Confidence</span>
+          <div style="display:flex;align-items:center;gap:5px;flex:1">
+            <div class="conf-bar"><div class="conf-fill hi" id="confFill" style="width:0%"></div></div>
+            <span class="conf-num hi" id="confNum">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="cx-row">
+        <div class="cx-chip"><div class="cx-chip-label">Time</div><div class="cx-chip-val cx-t" id="cxTime">—</div></div>
+        <div class="cx-chip"><div class="cx-chip-label">Space</div><div class="cx-chip-val cx-s" id="cxSpace">—</div></div>
+        <div class="cx-chip"><div class="cx-chip-label">Best</div><div class="cx-chip-val cx-b" id="cxBest">—</div></div>
+        <div class="cx-chip"><div class="cx-chip-label">Worst</div><div class="cx-chip-val cx-w" id="cxWorst">—</div></div>
+      </div>
+    </div>
   </section>
+
+  <!-- Controls Component -->
   <app-visualizer-controls></app-visualizer-controls>
+
 </div>
+
+<!-- API Service Layer -->
 <script src="/js/api/visualizerApi.js"></script>
+
+<!-- Web Components -->
 <script src="/components/visualizer/topbar.js"></script>
 <script src="/components/visualizer/controls.js"></script>
+
+<!-- Page Logic -->
 <script src="/js/visualizer/visualizer.js"></script>
 <script src="/js/visualizer/structuredFlow.js"></script>
+
 </body>
 </html>
