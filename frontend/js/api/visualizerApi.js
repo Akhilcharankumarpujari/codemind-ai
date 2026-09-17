@@ -6,58 +6,40 @@
       ? `${window.location.protocol}//${window.location.hostname}:3001`
       : '';
 
+  async function request(path, body, fallbackMessage) {
+    const resp = await fetch(`${BACKEND_URL}${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+      credentials: 'include'
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      throw new Error(err.error || fallbackMessage);
+    }
+    return resp.json();
+  }
+
   window.VisualizerApi = {
     async analyzeCode(code, mode) {
-      const resp = await fetch(`${BACKEND_URL}/api/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, mode: mode === 'auto' ? undefined : mode }),
-        credentials: 'include'
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || 'Code analysis failed');
-      }
-      return resp.json();
+      return request('/api/analyze', { code, mode: mode === 'auto' ? undefined : mode }, 'Code analysis failed');
     },
     async analyzeComplexity(code, language) {
-      const resp = await fetch(`${BACKEND_URL}/api/complexity/analyze`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, language }),
-        credentials: 'include'
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || 'Complexity analysis failed');
-      }
-      return resp.json();
+      return request('/api/complexity/analyze', { code, language }, 'Complexity analysis failed');
     },
     async generateFlowGraph(code, isRetry, customInput) {
-      const resp = await fetch(`${BACKEND_URL}/api/flow/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, isRetry, customInput }),
-        credentials: 'include'
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to generate flow graph');
-      }
-      return resp.json();
+      return request('/api/flow/generate', { code, isRetry, customInput }, 'Failed to generate flow graph');
+    },
+    async validateFlowGraph(graph, sourceCode = '') {
+      return request('/api/flow/validate', { graph, sourceCode }, 'Flow validation failed');
+    },
+    async explainFlow({ code, graph, selectedNodeId = null, executionState = null, ragContext = '', mode = 'all', model } = {}) {
+      return request('/api/flow/explain', {
+        code, graph, selectedNodeId, executionState, ragContext, mode, model
+      }, 'Flow explanation failed');
     },
     async runDryRun(code, input) {
-      const resp = await fetch(`${BACKEND_URL}/api/flow/dryrun`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, input }),
-        credentials: 'include'
-      });
-      if (!resp.ok) {
-        const err = await resp.json().catch(() => ({}));
-        throw new Error(err.error || 'Dry run failed');
-      }
-      return resp.json();
+      return request('/api/flow/dryrun', { code, input }, 'Dry run failed');
     }
   };
 })();
