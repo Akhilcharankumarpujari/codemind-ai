@@ -3,26 +3,22 @@ import Groq from 'groq-sdk';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { validateFlowGraph, validateFlowGenerationResult } from '../services/flow/flowValidator.js';
+import { explainFlow } from '../services/flow/flowExplainer.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 export const generate = async (req, res) => {
   try {
     const { code, isRetry, customInput } = req.body;
-
-    if (!code || typeof code !== 'string') {
-      return res.status(400).json({ error: 'Code string is required.' });
-    }
+    if (!code || typeof code !== 'string') return res.status(400).json({ error: 'Code string is required.' });
 
     const flowData = await generateFlow(code, isRetry, customInput);
+    const validation = validateFlowGenerationResult(flowData, code);
 
-    res.json({
-      mermaid: flowData.mermaid,
-      steps: flowData.steps
-    });
+    res.json({ mermaid: flowData.mermaid, steps: flowData.steps, validation });
   } catch (error) {
     console.error('[Flow Generate Error]', error.message);
     const statusCode = error.message.includes('Syntax Error') || error.message.includes('Invalid input') ? 400 : 500;
@@ -30,16 +26,41 @@ export const generate = async (req, res) => {
   }
 };
 
+export const validate = async (req, res) => {
+  try {
+    const { graph, sourceCode = '' } = req.body;
+    if (!graph || typeof graph !== 'object') return res.status(400).json({ error: 'graph object is required.' });
+    return res.json(validateFlowGraph(graph, sourceCode));
+  } catch (error) {
+    console.error('[Flow Validate Error]', error.message);
+    return res.status(500).json({ error: 'Failed to validate flow.' });
+  }
+};
+
+export const explain = async (req, res) => {
+  try {
+    const { code, graph, selectedNodeId, executionState, ragContext, mode = 'node', model } = req.body;
+    if (!code || typeof code !== 'string') return res.status(400).json({ error: 'Code string is required.' });
+    if (!graph || typeof graph !== 'object') return res.status(400).json({ error: 'graph object is required.' });
+
+    const validation = validateFlowGraph(graph, code);
+    if (validation.errors.length) {
+      return res.status(422).json({ error: 'Flow graph must be corrected before explanation.', validation });
+    }
+
+    const explanation = await explainFlow({ code, graph, selectedNodeId, executionState, ragContext, mode, model });
+    return res.json({ success: true, validation, explanation });
+  } catch (error) {
+    console.error('[Flow Explain Error]', error.message);
+    return res.status(500).json({ error: error.message || 'Failed to explain flow.' });
+  }
+};
+
 export const dryrun = async (req, res) => {
   try {
     const { code, input, language = 'auto' } = req.body;
-
-    if (!code || typeof code !== 'string') {
-      return res.status(400).json({ error: 'Code string is required.' });
-    }
-    if (typeof input !== 'string') {
-      return res.status(400).json({ error: 'Sample input must be a string.' });
-    }
+    if (!code || typeof code !== 'string') return res.status(400).json({ error: 'Code string is required.' });
+    if (typeof input !== 'string') return res.status(400).json({ error: 'Sample input must be a string.' });
 
     const promptPath = path.join(__dirname, '..', 'prompts', 'dryrun.json');
     let systemPrompt = '';
@@ -48,15 +69,8 @@ export const dryrun = async (req, res) => {
       systemPrompt = JSON.parse(promptData).systemPrompt;
     } catch (err) {
       console.error('[DryRun] Failed to load dryrun.json prompt config:', err.message);
-      systemPrompt = `You are a precise code execution tracer. Your job is to simulate code execution step-by-step with a given input and return a structured JSON dry run trace.
-RULES:
-- If the code is self-contained and the sample input is empty, trace the execution using the values defined inside the code.
-- Trace every meaningful line: assignments, comparisons, function calls, loop iterations, returns.
-- For each step record: the exact line of code, a plain-English action description, and a snapshot of ALL variable values at that moment.
-- Produce a "summary" (1-2 sentences explaining what the code does), "input" (echo the input, or "None" if empty), and "output" (the final return value or print output).`;
+      systemPrompt = `You are a precise code execution tracer. Your job is to simulate code execution step-by-step with a given input and return a structured JSON dry run trace.\nRULES:\n- If the code is self-contained and the sample input is empty, trace the execution using the values defined inside the code.\n- Trace every meaningful line: assignments, comparisons, function calls, loop iterations, returns.\n- For each step record: the exact line of code, a plain-English action description, and a snapshot of ALL variable values at that moment.\n- Produce a summary, input, and output.`;
     }
-
-    console.log(`[DryRun] Tracing ${language} code with input: "${input ? input.slice(0, 60) : '(None)'}"`);
 
     const completion = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
@@ -71,27 +85,12 @@ RULES:
 
     const raw = completion.choices?.[0]?.message?.content;
     if (!raw) throw new Error('Empty response from AI');
-
-    let cleanRaw = raw.trim();
-    const jsonMatch = cleanRaw.match(/\{[\s\S]+\}/);
-    if (jsonMatch) {
-      cleanRaw = jsonMatch[0];
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(cleanRaw);
-    } catch {
-      throw new Error('Failed to parse dry run JSON from AI');
-    }
-
-    if (!parsed.steps || !Array.isArray(parsed.steps)) {
-      throw new Error('Invalid dry run format: missing steps array');
-    }
-
-    res.json(parsed);
+    const match = raw.trim().match(/\{[\s\S]+\}/);
+    const parsed = JSON.parse(match ? match[0] : raw.trim());
+    if (!parsed.steps || !Array.isArray(parsed.steps)) throw new Error('Invalid dry run format: missing steps array');
+    return res.json(parsed);
   } catch (error) {
     console.error('[DryRun Error]', error.message);
-    res.status(500).json({ error: error.message || 'Failed to generate dry run' });
+    return res.status(500).json({ error: error.message || 'Failed to generate dry run' });
   }
 };
