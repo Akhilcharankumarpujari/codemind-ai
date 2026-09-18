@@ -15,13 +15,31 @@ export const generate = async (req, res) => {
     const { code, isRetry, customInput } = req.body;
     if (!code || typeof code !== 'string') return res.status(400).json({ error: 'Code string is required.' });
 
-    const flowData = await generateFlow(code, isRetry, customInput);
-    const validation = validateFlowGenerationResult(flowData, code);
+    let flowData = await generateFlow(code, isRetry, customInput);
+    let validation = validateFlowGenerationResult(flowData, code);
 
-    res.json({
-      mermaid: flowData.mermaid,
+    if (!isRetry && !flowData?.error && !validation.valid) {
+      try {
+        const retryData = await generateFlow(code, true, customInput);
+        const retryValidation = validateFlowGenerationResult(retryData, code);
+        if (retryValidation.valid || retryValidation.errors.length < validation.errors.length) {
+          flowData = retryData;
+          validation = retryValidation;
+        }
+      } catch (retryError) {
+        console.warn('[Flow Generate Retry] Repair attempt failed:', retryError.message);
+      }
+    }
+
+    if (flowData?.error) return res.status(400).json({ error: String(flowData.error) });
+    if (!flowData || typeof flowData !== 'object') {
+      return res.status(502).json({ error: 'AI returned an invalid flow response.' });
+    }
+
+    return res.json({
+      mermaid: flowData.mermaid || null,
       graph: flowData.graph || null,
-      steps: flowData.steps,
+      steps: Array.isArray(flowData.steps) ? flowData.steps : [],
       validation,
     });
   } catch (error) {
@@ -49,9 +67,7 @@ export const explain = async (req, res) => {
     if (!graph || typeof graph !== 'object') return res.status(400).json({ error: 'graph object is required.' });
 
     const validation = validateFlowGraph(graph, code);
-    if (validation.errors.length) {
-      return res.status(422).json({ error: 'Flow graph must be corrected before explanation.', validation });
-    }
+    if (validation.errors.length) return res.status(422).json({ error: 'Flow graph must be corrected before explanation.', validation });
 
     const explanation = await explainFlow({ code, graph, selectedNodeId, executionState, ragContext, mode, model });
     return res.json({ success: true, validation, explanation });
